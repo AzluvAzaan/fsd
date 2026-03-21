@@ -1,0 +1,29 @@
+meta {
+  name: Upsert User
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/users
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "id": "user-123",
+    "email": "test@gmail.com",
+    "displayName": "Test User",
+    "gmailToken": "oauth-token-xyz",
+    "telegramChatId": "123456789"
+  }
+}
+
+
+
+

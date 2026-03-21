@@ -1,0 +1,19 @@
+# Build
+/build/
+
+# Environment
+.env
+
+# IDE
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+*.exe
+*.test
+*.out
+

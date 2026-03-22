@@ -84,8 +84,8 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 
 ```bash
 cd frontend
-pnpm install
-pnpm dev
+npm install
+npm run dev
 ```
 
 Open:
@@ -148,8 +148,8 @@ As the app grows, create feature-oriented folders under `src/components` and `sr
 ## Commands
 
 ```bash
-pnpm dev      # run dev server
-pnpm build    # production build
-pnpm start    # run production server
-pnpm lint     # lint the project
+npm run dev    # run dev server
+npm run build  # production build
+npm run start  # run production server
+npm run lint   # lint the project
 ```

@@ -340,6 +340,40 @@
     box-shadow: 0 8px 20px -18px color-mix(in srgb, black 18%, transparent);
   }
 
+  .fsd-calendar .fc .fc-event-personal-bar {
+    display: flex;
+    height: 100%;
+    min-height: 100%;
+    flex-direction: column;
+    gap: 0.18rem;
+    overflow: hidden;
+    border: 1px solid;
+    border-radius: 0.35rem;
+    padding: 0.3rem 0.42rem;
+  }
+
+  .fsd-calendar .fc .fc-event-personal-bar__time {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 0.6rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: rgb(255 255 255 / 0.96);
+  }
+
+  .fsd-calendar .fc .fc-event-personal-bar__title {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1.22;
+    color: rgb(255 255 255 / 0.98);
+    word-break: break-word;
+  }
+
   .fsd-calendar .fc .fc-event-highlight .fc-event-card {
     border-color: color-mix(in srgb, var(--primary) 14%, transparent);
     border-left-color: color-mix(in srgb, var(--primary) 70%, transparent);

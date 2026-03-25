@@ -39,6 +39,8 @@ type CompositeCalendarEvent = {
   entries: CompositeEntry[];
 };
 
+type PersonalEventCategory = "Work" | "School" | "Social" | "Personal";
+
 type HoverTooltip = {
   entries: CompositeEntry[];
   timeRange: string;
@@ -46,8 +48,16 @@ type HoverTooltip = {
   y: number;
 } | null;
 
+type DetailPopupEntry = {
+  label: string;
+  title: string;
+  color: string;
+  detail?: string;
+  avatarText?: string;
+};
+
 type ClickedEvent = {
-  entries: CompositeEntry[];
+  entries: DetailPopupEntry[];
   timeRange: string;
   x: number;
   y: number;
@@ -104,6 +114,35 @@ const personalCalendarEvents: CalendarEvent[] = [
   createEvent("ev12", "Demo Dry Run", "2026-03-28T16:00:00", "2026-03-28T17:00:00", "highlight"),
 ];
 
+const personalCategoryMeta: Record<PersonalEventCategory, { color: string; keywords: string[] }> = {
+  Work: {
+    color: "#7c3aed",
+    keywords: ["sync", "review", "build", "planning", "sprint", "demo", "client", "crit", "design", "work", "retro"],
+  },
+  School: {
+    color: "#0284c7",
+    keywords: ["mentor", "research", "study", "class", "lecture", "assignment", "lab", "tutorial"],
+  },
+  Social: {
+    color: "#d97706",
+    keywords: ["coffee", "catch-up", "lunch", "dinner", "meetup", "hangout"],
+  },
+  Personal: {
+    color: "#16a34a",
+    keywords: [],
+  },
+};
+
+function getPersonalEventCategory(event: CalendarEvent): PersonalEventCategory {
+  const text = `${event.title} ${event.group ?? ""}`.toLowerCase();
+  for (const category of ["Social", "School", "Work"] as const) {
+    if (personalCategoryMeta[category].keywords.some((keyword) => text.includes(keyword))) {
+      return category;
+    }
+  }
+  return "Personal";
+}
+
 // Flat raw events (used for bottom panels / member breakdown)
 const groupCalendarEvents: CalendarEvent[] = Object.entries(memberSchedules).flatMap(
   ([memberName, evts]) => evts.map((ev) => ({ ...ev, memberName })),
@@ -137,6 +176,11 @@ function toCompositeEventInput(ev: CompositeCalendarEvent): EventInput {
   return { id: ev.id, start: ev.startAt, end: ev.endAt, extendedProps: { entries: ev.entries } };
 }
 
+const personalEventCategories = personalCalendarEvents.reduce<Record<string, PersonalEventCategory>>((acc, event) => {
+  acc[event.id] = getPersonalEventCategory(event);
+  return acc;
+}, {});
+
 // Per-day member colors for group month view dots
 const memberColorsByDay = (() => {
   const map = new Map<string, string[]>();
@@ -149,6 +193,23 @@ const memberColorsByDay = (() => {
   }
   return map;
 })();
+
+const personalColorsByDay = (() => {
+  const map = new Map<string, string[]>();
+  for (const ev of personalCalendarEvents) {
+    const day = ev.startAt.slice(0, 10);
+    if (!map.has(day)) map.set(day, []);
+    map.get(day)!.push(personalCategoryMeta[personalEventCategories[ev.id] ?? "Personal"].color);
+  }
+  return map;
+})();
+
+const personalLegendItems = (Object.keys(personalCategoryMeta) as PersonalEventCategory[])
+  .filter((category) => Object.values(personalEventCategories).includes(category))
+  .map((category) => ({
+    label: category,
+    color: personalCategoryMeta[category].color,
+  }));
 
 function getDateKey(value: Date | string) {
   const date = typeof value === "string" ? new Date(value) : value;
@@ -172,7 +233,39 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
+function getFloatingPopupPosition(rect: DOMRect, popupWidth: number, popupHeight: number) {
+  const x = clamp(
+    rect.right + 12 + popupWidth > window.innerWidth ? rect.left - popupWidth - 12 : rect.right + 12,
+    VIEWPORT_GUTTER,
+    Math.max(VIEWPORT_GUTTER, window.innerWidth - popupWidth - VIEWPORT_GUTTER),
+  );
+  const y = clamp(
+    rect.top,
+    VIEWPORT_GUTTER,
+    Math.max(VIEWPORT_GUTTER, window.innerHeight - popupHeight - VIEWPORT_GUTTER),
+  );
+
+  return { x, y };
+}
+
+function getPersonalEventDetail(event: CalendarEvent): DetailPopupEntry {
+  const category = personalEventCategories[event.id] ?? "Personal";
+  const detailParts = [];
+  if (event.group) detailParts.push(event.group);
+  if (event.tone === "highlight") detailParts.push("Priority");
+  if (event.tone === "muted") detailParts.push("Focus block");
+
+  return {
+    label: category,
+    title: event.title,
+    color: personalCategoryMeta[category].color,
+    detail: detailParts.length > 0 ? detailParts.join(" · ") : "Personal calendar",
+    avatarText: category[0],
+  };
+}
+
 function toEventInput(event: CalendarEvent): EventInput {
+  const category = personalEventCategories[event.id] ?? "Personal";
   return {
     id: event.id,
     title: event.title,
@@ -182,6 +275,8 @@ function toEventInput(event: CalendarEvent): EventInput {
       tone: event.tone ?? "default",
       group: event.group,
       memberName: event.memberName,
+      accentColor: event.memberName ? undefined : personalCategoryMeta[category].color,
+      category,
     },
   };
 }
@@ -374,20 +469,33 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
       </div>
 
       <SectionCard className="overflow-hidden p-0">
-        {scope === "group" && (
+        {(scope === "group" || personalLegendItems.length > 0) && (
           <div className="flex flex-wrap gap-2 border-b border-border/60 px-3 py-3 sm:px-4 lg:px-6">
-            {groupMembers.map((member) => (
-              <div
-                key={member.name}
-                className="flex items-center gap-1.5 rounded-full border border-border/70 bg-card px-3 py-1.5"
-              >
-                <span
-                  className="inline-block size-2.5 rounded-full flex-shrink-0"
-                  style={{ background: member.color }}
-                />
-                <span className="text-xs font-semibold">{member.name}</span>
-              </div>
-            ))}
+            {scope === "group"
+              ? groupMembers.map((member) => (
+                  <div
+                    key={member.name}
+                    className="flex items-center gap-1.5 rounded-full border border-border/70 bg-card px-3 py-1.5"
+                  >
+                    <span
+                      className="inline-block size-2.5 rounded-full flex-shrink-0"
+                      style={{ background: member.color }}
+                    />
+                    <span className="text-xs font-semibold">{member.name}</span>
+                  </div>
+                ))
+              : personalLegendItems.map((item) => (
+                  <div
+                    key={item.label}
+                    className="flex items-center gap-1.5 rounded-full border border-border/70 bg-card px-3 py-1.5"
+                  >
+                    <span
+                      className="inline-block size-2.5 rounded-full flex-shrink-0"
+                      style={{ background: item.color }}
+                    />
+                    <span className="text-xs font-semibold">{item.label}</span>
+                  </div>
+                ))}
           </div>
         )}
         <div className="fsd-calendar overflow-x-auto p-3 sm:p-4 lg:p-6">
@@ -412,7 +520,7 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
                 slotLabelInterval="01:00:00"
                 slotMinTime="08:00:00"
                 slotMaxTime="18:00:00"
-                height={viewMode === "week" ? 860 : 660}
+                height={viewMode === "week" ? "auto" : 660}
                 eventDisplay="block"
                 slotEventOverlap={false}
                 events={calendarFeedEvents}
@@ -438,22 +546,18 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
                 dayCellContent={(arg) => {
                   if (arg.view.type !== "dayGridMonth") return undefined;
                   const day = getDateKey(arg.date);
-                  const colors = scope === "group" ? (memberColorsByDay.get(day) ?? []) : [];
-                  const count = scope === "personal"
-                    ? personalCalendarEvents.filter((e) => e.startAt.slice(0, 10) === day).length
-                    : 0;
+                  const colors = scope === "group"
+                    ? (memberColorsByDay.get(day) ?? [])
+                    : (personalColorsByDay.get(day) ?? []);
                   return (
                     <div className="fsd-daycell-inner">
                       <span className="fsd-daycell-number">{arg.dayNumberText}</span>
-                      {scope === "group" && colors.length > 0 && (
+                      {colors.length > 0 && (
                         <div className="fsd-daycell-bars">
-                          {colors.slice(0, 5).map((color) => (
-                            <span key={color} className="fsd-daycell-bar" style={{ background: `${color}50` }} />
+                          {colors.slice(0, 5).map((color, index) => (
+                            <span key={`${color}-${index}`} className="fsd-daycell-bar" style={{ background: `${color}50` }} />
                           ))}
                         </div>
-                      )}
-                      {scope === "personal" && count > 0 && (
-                        <span className="fsd-daycell-count">{count}</span>
                       )}
                     </div>
                   );
@@ -462,17 +566,22 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
                   if (arg.event.start) {
                     setSelectedDate(getDateKey(arg.event.start));
                   }
+                  const rect = arg.el.getBoundingClientRect();
+                  const popupWidth = 264;
+
                   if (scope === "group") {
-                    const entries = arg.event.extendedProps.entries as CompositeEntry[];
-                    const rect = arg.el.getBoundingClientRect();
-                    const popupWidth = 264;
-                    const x = rect.right + 12 + popupWidth > window.innerWidth
-                      ? rect.left - popupWidth - 12
-                      : rect.right + 12;
+                    const entries = (arg.event.extendedProps.entries as CompositeEntry[]).map((entry) => {
+                      const member = groupMembers.find((m) => m.name === entry.memberName);
+                      return {
+                        label: entry.memberName,
+                        title: entry.title,
+                        color: entry.color,
+                        detail: member?.availability,
+                        avatarText: entry.memberName[0],
+                      };
+                    });
                     const popupHeight = 80 + entries.length * 56;
-                    const y = rect.top + popupHeight > window.innerHeight
-                      ? window.innerHeight - popupHeight - 12
-                      : rect.top;
+                    const { x, y } = getFloatingPopupPosition(rect, popupWidth, popupHeight);
                     setClickedEvent({
                       entries,
                       timeRange: arg.event.start && arg.event.end
@@ -481,7 +590,22 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
                       x,
                       y,
                     });
+                    return;
                   }
+
+                  const event = personalCalendarEvents.find((item) => item.id === arg.event.id);
+                  if (!event) return;
+                  const entries = [getPersonalEventDetail(event)];
+                  const popupHeight = 136;
+                  const { x, y } = getFloatingPopupPosition(rect, popupWidth, popupHeight);
+                  setClickedEvent({
+                    entries,
+                    timeRange: arg.event.start && arg.event.end
+                      ? `${eventTimeFormatter.format(arg.event.start)} – ${eventTimeFormatter.format(arg.event.end)}`
+                      : "",
+                    x,
+                    y,
+                  });
                 }}
                 dayCellClassNames={(arg) => (getDateKey(arg.date) === selectedDate ? ["fc-day-selected"] : [])}
                 dayHeaderContent={(arg) => {
@@ -504,32 +628,43 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
                     </button>
                   );
                 }}
-                eventClassNames={(arg) => {
-                  if (scope === "group") return ["fc-event-shell"];
-                  const tone = arg.event.extendedProps.tone as CalendarEvent["tone"];
-                  return [
-                    "fc-event-shell",
-                    tone === "highlight" ? "fc-event-highlight" : "",
-                    tone === "muted" ? "fc-event-muted" : "",
-                  ];
-                }}
-                eventMouseEnter={scope === "group" ? (arg) => {
+                eventClassNames={() => ["fc-event-shell"]}
+                eventMouseEnter={(arg) => {
                   const entries = arg.event.extendedProps.entries as CompositeEntry[];
                   const rect = arg.el.getBoundingClientRect();
                   const tooltipWidth = 230;
                   const x = rect.right + 10 + tooltipWidth > window.innerWidth
                     ? rect.left - tooltipWidth - 10
                     : rect.right + 10;
+                  if (scope === "group") {
+                    setHoverTooltip({
+                      entries,
+                      timeRange: arg.event.start && arg.event.end
+                        ? `${eventTimeFormatter.format(arg.event.start)} – ${eventTimeFormatter.format(arg.event.end)}`
+                        : "",
+                      x,
+                      y: rect.top,
+                    });
+                    return;
+                  }
+
+                  const tone = arg.event.extendedProps.tone as CalendarEvent["tone"];
+                  const category = (arg.event.extendedProps.category as PersonalEventCategory | undefined) ?? "Personal";
+                  const accentColor = (arg.event.extendedProps.accentColor as string | undefined) ?? "#7c3aed";
                   setHoverTooltip({
-                    entries,
+                    entries: [{
+                      memberName: category,
+                      title: arg.event.title,
+                      color: accentColor,
+                    }],
                     timeRange: arg.event.start && arg.event.end
                       ? `${eventTimeFormatter.format(arg.event.start)} – ${eventTimeFormatter.format(arg.event.end)}`
                       : "",
                     x,
                     y: rect.top,
                   });
-                } : undefined}
-                eventMouseLeave={scope === "group" ? () => setHoverTooltip(null) : undefined}
+                }}
+                eventMouseLeave={() => setHoverTooltip(null)}
                 eventContent={(arg: EventContentArg) => {
                   if (scope === "group") {
                     const entries = arg.event.extendedProps.entries as CompositeEntry[];
@@ -557,22 +692,32 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
 
                   if (arg.view.type === "dayGridMonth") {
                     return (
-                      <div className="fc-event-pill">
+                      <div
+                        className="fc-event-pill"
+                        style={{
+                          background: `${((arg.event.extendedProps.accentColor as string | undefined) ?? "#7c3aed")}22`,
+                          borderColor: `${((arg.event.extendedProps.accentColor as string | undefined) ?? "#7c3aed")}32`,
+                          borderLeftColor: `${((arg.event.extendedProps.accentColor as string | undefined) ?? "#7c3aed")}7a`,
+                        }}
+                      >
                         <p className="fc-event-pill__title">{arg.event.title}</p>
                       </div>
                     );
                   }
+                  const accentColor = (arg.event.extendedProps.accentColor as string | undefined) ?? "#7c3aed";
                   return (
-                    <div className="fc-event-card">
-                      <p className="fc-event-time">{arg.timeText}</p>
-                      <p className="fc-event-title">{arg.event.title}</p>
-                      {arg.event.extendedProps.group ? <p className="fc-event-meta">{arg.event.extendedProps.group as string}</p> : null}
-                    </div>
+                    <div
+                      className="fc-event-personal-bar"
+                      style={{
+                        borderColor: `${accentColor}22`,
+                        background: `${accentColor}4d`,
+                      }}
+                    />
                   );
                 }}
               />
             ) : (
-              <div style={{ height: viewMode === "week" ? 860 : 560 }} className="rounded-3xl bg-muted/20" />
+              <div style={{ height: viewMode === "week" ? 720 : 560 }} className="rounded-3xl bg-muted/20" />
             )}
           </div>
         </div>
@@ -649,8 +794,14 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
                         {formatEventTimeRange(event.startAt, event.endAt)}
                       </p>
                     </div>
-                    <span className={cn("rounded-full px-3 py-1 text-xs font-semibold", event.tone === "highlight" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
-                      {event.tone === "highlight" ? "Priority" : "Scheduled"}
+                    <span
+                      className="rounded-full px-3 py-1 text-xs font-semibold"
+                      style={{
+                        background: `${personalCategoryMeta[personalEventCategories[event.id] ?? "Personal"].color}18`,
+                        color: personalCategoryMeta[personalEventCategories[event.id] ?? "Personal"].color,
+                      }}
+                    >
+                      {personalEventCategories[event.id] ?? "Personal"}
                     </span>
                   </div>
                   {event.group ? <p className="mt-3 text-sm font-medium text-primary">{event.group}</p> : null}
@@ -764,22 +915,21 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
             </div>
             <div className="divide-y divide-border/50">
               {clickedEvent.entries.map((entry) => {
-                const member = groupMembers.find((m) => m.name === entry.memberName);
                 return (
-                  <div key={entry.memberName} className="flex items-start gap-3 px-4 py-3">
+                  <div key={`${entry.label}-${entry.title}`} className="flex items-start gap-3 px-4 py-3">
                     <span
                       className="mt-0.5 inline-flex size-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-black text-white"
                       style={{ background: entry.color }}
                     >
-                      {entry.memberName[0]}
+                      {entry.avatarText ?? entry.label[0]}
                     </span>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold leading-tight" style={{ color: entry.color }}>
-                        {entry.memberName}
+                        {entry.label}
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground truncate">{entry.title}</p>
-                      {member?.availability && (
-                        <p className="mt-1 text-xs leading-4 text-muted-foreground/70">{member.availability}</p>
+                      {entry.detail && (
+                        <p className="mt-1 text-xs leading-4 text-muted-foreground/70">{entry.detail}</p>
                       )}
                     </div>
                   </div>
@@ -805,7 +955,7 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
         const LABEL_COL_W = 52;
         const EVENT_GUTTER_X = 10;
         const GRID_PAD_TOP = 18;
-        const GRID_PAD_BOTTOM = 18;
+        const GRID_PAD_BOTTOM = 0;
         const GRID_FRAME_H = GRID_PX + GRID_PAD_TOP + GRID_PAD_BOTTOM;
 
         const toTop = (iso: string) => {
@@ -929,8 +1079,7 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
                             </div>
                           ))
                         : persEvs.sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime()).map((ev) => {
-                            const isHL = ev.tone === "highlight";
-                            const isMuted = ev.tone === "muted";
+                            const accentColor = personalCategoryMeta[personalEventCategories[ev.id] ?? "Personal"].color;
                             return (
                               <div
                                 key={ev.id}
@@ -940,14 +1089,22 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
                                   height: toH(ev.startAt, ev.endAt),
                                   margin: "0 2px",
                                   borderRadius: "0.6rem",
-                                  border: `1px solid color-mix(in srgb, var(--border) 60%, transparent)`,
-                                  borderLeft: `3px solid color-mix(in srgb, var(--primary) ${isHL ? "70%" : isMuted ? "20%" : "30%"}, transparent)`,
-                                  background: isHL
-                                    ? "color-mix(in srgb, var(--primary) 7%, var(--card) 93%)"
-                                    : isMuted
-                                    ? "color-mix(in srgb, var(--muted) 45%, transparent)"
-                                    : "color-mix(in srgb, var(--card) 80%, transparent)",
+                                  border: `1px solid ${accentColor}30`,
+                                  borderLeft: `3px solid ${accentColor}80`,
+                                  background: `${accentColor}22`,
                                   padding: "3px 6px",
+                                }}
+                                onClick={(event) => {
+                                  const rect = event.currentTarget.getBoundingClientRect();
+                                  const entries = [getPersonalEventDetail(ev)];
+                                  const popupHeight = 136;
+                                  const { x, y } = getFloatingPopupPosition(rect, 264, popupHeight);
+                                  setClickedEvent({
+                                    entries,
+                                    timeRange: formatEventTimeRange(ev.startAt, ev.endAt),
+                                    x,
+                                    y,
+                                  });
                                 }}
                               >
                                 <p className="text-[0.55rem] font-black uppercase tracking-wide leading-none text-muted-foreground">

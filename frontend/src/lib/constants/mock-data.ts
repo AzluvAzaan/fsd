@@ -5,6 +5,14 @@ export type CalendarEvent = {
   endAt: string;
   tone?: "default" | "highlight" | "muted";
   group?: string;
+  memberName?: string;
+};
+
+export type GroupMember = {
+  name: string;
+  role: string;
+  availability: string;
+  color: string;
 };
 
 export type Group = {
@@ -71,18 +79,59 @@ export const groups: Group[] = [
   { id: "weekend-plans", name: "Weekend Plans", description: "Casual availability planning for social meetups.", members: 6, role: "Member", nextWindow: "Best overlap: Sat 4:00 PM", accent: "from-indigo-500 to-sky-500" },
 ];
 
-export const groupMembers = [
-  { name: "Azluv", role: "Owner", availability: "High overlap this week" },
-  { name: "Sarah", role: "Member", availability: "Free Tue / Thu afternoons" },
-  { name: "Ryan", role: "Member", availability: "Busy mornings, open after 2 PM" },
-  { name: "Iman", role: "Member", availability: "Mostly free Wed / Fri" },
-  { name: "Jia", role: "Member", availability: "Open Tue noon onward" },
+export const groupMembers: GroupMember[] = [
+  { name: "Azluv", role: "Owner", availability: "High overlap this week", color: "#7c3aed" },
+  { name: "Sarah", role: "Member", availability: "Free Tue / Thu afternoons", color: "#c026d3" },
+  { name: "Ryan", role: "Member", availability: "Busy mornings, open after 2 PM", color: "#0284c7" },
+  { name: "Iman", role: "Member", availability: "Mostly free Wed / Fri", color: "#16a34a" },
+  { name: "Jia", role: "Member", availability: "Open Tue noon onward", color: "#d97706" },
 ];
 
+// Per-member event schedules used by the group calendar view
+export const memberSchedules: Record<string, CalendarEvent[]> = {
+  "Azluv": [
+    { id: "az-1", title: "Planning Sync", startAt: "2026-03-16T09:00:00", endAt: "2026-03-16T10:00:00", tone: "highlight" },
+    { id: "az-2", title: "Focus Block", startAt: "2026-03-18T13:00:00", endAt: "2026-03-18T15:00:00", tone: "muted" },
+    { id: "az-3", title: "Shared Team Sync", startAt: "2026-03-19T14:00:00", endAt: "2026-03-19T15:30:00", tone: "highlight" },
+    { id: "az-4", title: "Client Review", startAt: "2026-03-20T16:00:00", endAt: "2026-03-20T17:00:00" },
+    { id: "az-5", title: "Retro Prep", startAt: "2026-03-23T10:00:00", endAt: "2026-03-23T11:00:00" },
+    { id: "az-6", title: "Availability Review", startAt: "2026-03-24T14:00:00", endAt: "2026-03-24T15:00:00", tone: "highlight" },
+  ],
+  "Sarah": [
+    { id: "sa-1", title: "Engineering Review", startAt: "2026-03-17T11:00:00", endAt: "2026-03-17T12:30:00", tone: "highlight" },
+    { id: "sa-2", title: "Client Call", startAt: "2026-03-17T14:00:00", endAt: "2026-03-17T15:00:00" },
+    { id: "sa-3", title: "Shared Team Sync", startAt: "2026-03-19T14:00:00", endAt: "2026-03-19T15:30:00", tone: "highlight" },
+    { id: "sa-4", title: "Morning Standup", startAt: "2026-03-20T09:00:00", endAt: "2026-03-20T09:30:00" },
+    { id: "sa-5", title: "Sprint Review", startAt: "2026-03-23T14:00:00", endAt: "2026-03-23T15:30:00", tone: "highlight" },
+    { id: "sa-6", title: "Async Feedback", startAt: "2026-03-26T09:00:00", endAt: "2026-03-26T11:00:00", tone: "muted" },
+  ],
+  "Ryan": [
+    { id: "ry-1", title: "Design Handoff", startAt: "2026-03-17T09:00:00", endAt: "2026-03-17T10:00:00" },
+    { id: "ry-2", title: "Engineering Review", startAt: "2026-03-17T11:00:00", endAt: "2026-03-17T12:30:00", tone: "highlight" },
+    { id: "ry-3", title: "No-meeting Block", startAt: "2026-03-18T13:00:00", endAt: "2026-03-18T15:00:00", tone: "muted" },
+    { id: "ry-4", title: "Shared Team Sync", startAt: "2026-03-19T14:00:00", endAt: "2026-03-19T15:30:00", tone: "highlight" },
+    { id: "ry-5", title: "Focus Time", startAt: "2026-03-24T10:00:00", endAt: "2026-03-24T12:00:00", tone: "muted" },
+  ],
+  "Iman": [
+    { id: "im-1", title: "Planning Sync", startAt: "2026-03-16T09:00:00", endAt: "2026-03-16T10:00:00", tone: "highlight" },
+    { id: "im-2", title: "Research Block", startAt: "2026-03-18T10:00:00", endAt: "2026-03-18T12:00:00", tone: "muted" },
+    { id: "im-3", title: "No-meeting Block", startAt: "2026-03-18T13:00:00", endAt: "2026-03-18T15:00:00", tone: "muted" },
+    { id: "im-4", title: "Shared Team Sync", startAt: "2026-03-19T14:00:00", endAt: "2026-03-19T15:30:00", tone: "highlight" },
+    { id: "im-5", title: "Docs Review", startAt: "2026-03-23T13:00:00", endAt: "2026-03-23T14:00:00" },
+  ],
+  "Jia": [
+    { id: "ji-1", title: "Engineering Review", startAt: "2026-03-17T11:00:00", endAt: "2026-03-17T12:30:00", tone: "highlight" },
+    { id: "ji-2", title: "User Testing", startAt: "2026-03-17T15:00:00", endAt: "2026-03-17T16:30:00" },
+    { id: "ji-3", title: "Shared Team Sync", startAt: "2026-03-19T14:00:00", endAt: "2026-03-19T15:30:00", tone: "highlight" },
+    { id: "ji-4", title: "Wrap-up", startAt: "2026-03-20T16:00:00", endAt: "2026-03-20T17:00:00" },
+    { id: "ji-5", title: "Sync with PM", startAt: "2026-03-24T14:00:00", endAt: "2026-03-24T15:00:00" },
+  ],
+};
+
 export const availabilitySlots: AvailabilitySlot[] = [
-  { id: "slot-1", date: "Tuesday, Mar 17", time: "2:00 PM - 3:00 PM", confidence: "Best overlap", participants: ["Azluv", "Sarah", "Ryan", "Iman"], note: "4/5 members free; ideal for product sync." },
-  { id: "slot-2", date: "Wednesday, Mar 18", time: "11:00 AM - 12:00 PM", confidence: "Good overlap", participants: ["Azluv", "Ryan", "Iman"], note: "3/5 members free; lighter coordination slot." },
-  { id: "slot-3", date: "Thursday, Mar 19", time: "4:00 PM - 5:30 PM", confidence: "Strong overlap", participants: ["Azluv", "Sarah", "Jia", "Iman"], note: "4/5 members free; good for longer discussion." },
+  { id: "slot-1", date: "Tuesday, Mar 17", time: "12:30 PM – 2:00 PM", confidence: "Perfect overlap", participants: ["Azluv", "Sarah", "Ryan", "Iman", "Jia"], note: "All 5 members free; best window this week." },
+  { id: "slot-2", date: "Wednesday, Mar 18", time: "8:00 AM – 10:00 AM", confidence: "Good overlap", participants: ["Azluv", "Sarah", "Ryan", "Jia"], note: "4/5 members free; Iman has Research Block from 10." },
+  { id: "slot-3", date: "Friday, Mar 20", time: "10:00 AM – 4:00 PM", confidence: "Strong overlap", participants: ["Azluv", "Sarah", "Ryan", "Iman", "Jia"], note: "All 5 members free; ideal for longer sessions." },
 ];
 
 export const requests: RequestItem[] = [

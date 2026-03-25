@@ -133,3 +133,175 @@
     @apply transition-colors duration-200;
   }
 }
+
+@layer components {
+  .fsd-calendar .fc {
+    --fc-border-color: color-mix(in srgb, var(--border) 88%, transparent);
+    --fc-button-bg-color: var(--primary);
+    --fc-button-border-color: var(--primary);
+    --fc-button-hover-bg-color: color-mix(in srgb, var(--primary) 86%, black 14%);
+    --fc-button-hover-border-color: color-mix(in srgb, var(--primary) 86%, black 14%);
+    --fc-button-active-bg-color: color-mix(in srgb, var(--primary) 76%, black 24%);
+    --fc-button-active-border-color: color-mix(in srgb, var(--primary) 76%, black 24%);
+    --fc-neutral-bg-color: color-mix(in srgb, var(--muted) 70%, white 30%);
+    --fc-page-bg-color: transparent;
+    --fc-now-indicator-color: var(--primary);
+    color: var(--foreground);
+  }
+
+  .fsd-calendar .fc .fc-scrollgrid,
+  .fsd-calendar .fc-theme-standard td,
+  .fsd-calendar .fc-theme-standard th {
+    border-color: color-mix(in srgb, var(--border) 88%, transparent);
+  }
+
+  .fsd-calendar .fc .fc-scrollgrid {
+    overflow: hidden;
+    border: 0;
+    border-radius: 1.75rem;
+    background: color-mix(in srgb, var(--card) 92%, transparent);
+  }
+
+  .fsd-calendar .fc .fc-col-header-cell {
+    background: color-mix(in srgb, var(--background) 78%, white 22%);
+  }
+
+  .fsd-calendar .fc .fc-col-header-cell-cushion,
+  .fsd-calendar .fc .fc-daygrid-day-number {
+    text-decoration: none;
+  }
+
+  .fsd-calendar .fc .fc-timegrid-axis-cushion,
+  .fsd-calendar .fc .fc-timegrid-slot-label-cushion,
+  .fsd-calendar .fc .fc-weekday-label {
+    padding: 0.9rem 0.75rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  .fsd-calendar .fc .fc-weekday-button {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+    padding: 1rem 1.1rem;
+    background: transparent;
+    color: inherit;
+  }
+
+  .fsd-calendar .fc .fc-weekday-button.is-selected {
+    background: color-mix(in srgb, var(--primary) 9%, transparent);
+  }
+
+  .fsd-calendar .fc .fc-weekday-button__label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  .fsd-calendar .fc .fc-weekday-button__date {
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+  }
+
+  .fsd-calendar .fc .fc-timegrid-slot {
+    height: 4.5rem;
+  }
+
+  .fsd-calendar .fc .fc-timegrid-col.fc-day-selected,
+  .fsd-calendar .fc .fc-daygrid-day.fc-day-selected {
+    background: color-mix(in srgb, var(--primary) 5%, transparent);
+  }
+
+  .fsd-calendar .fc .fc-day-today {
+    background: color-mix(in srgb, var(--primary) 7%, transparent);
+  }
+
+  .fsd-calendar .fc .fc-daygrid-day-frame {
+    min-height: 8.5rem;
+  }
+
+  .fsd-calendar .fc .fc-daygrid-day-number {
+    padding: 0.85rem 0.95rem 0;
+    font-weight: 700;
+    color: var(--foreground);
+  }
+
+  .fsd-calendar .fc .fc-day-other .fc-daygrid-day-number {
+    color: color-mix(in srgb, var(--muted-foreground) 86%, transparent);
+  }
+
+  .fsd-calendar .fc .fc-daygrid-event-harness,
+  .fsd-calendar .fc .fc-timegrid-event-harness {
+    margin-inline: 0.45rem;
+  }
+
+  .fsd-calendar .fc .fc-event {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .fsd-calendar .fc .fc-event-main {
+    padding: 0;
+  }
+
+  .fsd-calendar .fc .fc-event-card {
+    display: flex;
+    height: 100%;
+    min-height: 100%;
+    flex-direction: column;
+    gap: 0.22rem;
+    border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
+    border-radius: 1rem;
+    background: color-mix(in srgb, var(--card) 95%, transparent);
+    padding: 0.75rem 0.85rem;
+    box-shadow: 0 10px 24px -20px color-mix(in srgb, black 22%, transparent);
+  }
+
+  .fsd-calendar .fc .fc-event-highlight .fc-event-card {
+    border-color: color-mix(in srgb, var(--primary) 18%, transparent);
+    background: color-mix(in srgb, var(--primary) 11%, var(--card) 89%);
+  }
+
+  .fsd-calendar .fc .fc-event-muted .fc-event-card {
+    background: color-mix(in srgb, var(--background) 88%, white 12%);
+  }
+
+  .fsd-calendar .fc .fc-event-time {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  .fsd-calendar .fc .fc-event-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--foreground);
+  }
+
+  .fsd-calendar .fc .fc-event-meta {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--primary);
+  }
+
+  .fsd-calendar .fc .fc-timegrid-now-indicator-line {
+    border-color: var(--primary);
+  }
+
+  .fsd-calendar .fc .fc-timegrid-now-indicator-arrow {
+    border-top-color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
+}

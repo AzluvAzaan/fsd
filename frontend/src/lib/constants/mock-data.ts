@@ -1,12 +1,8 @@
 export type CalendarEvent = {
   id: string;
   title: string;
-  dayLabel: string;
-  start: string;
-  end: string;
-  lane: number;
-  rowStart: number;
-  rowSpan: number;
+  startAt: string;
+  endAt: string;
   tone?: "default" | "highlight" | "muted";
   group?: string;
 };
@@ -56,14 +52,11 @@ export type IntegrationItem = {
   actionLabel: string;
 };
 
-export const calendarDays = ["Mon 12", "Tue 13", "Wed 14", "Thu 15", "Fri 16"];
-export const calendarHours = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
-
 export const personalEvents: CalendarEvent[] = [
-  { id: "ev1", title: "Product Strategy Sync", dayLabel: "Mon 12", start: "09:00", end: "10:30", lane: 0, rowStart: 3, rowSpan: 3, tone: "highlight" },
-  { id: "ev2", title: "Morning Coffee", dayLabel: "Thu 15", start: "09:00", end: "10:00", lane: 3, rowStart: 3, rowSpan: 2, tone: "default" },
-  { id: "ev3", title: "Deep Work Block", dayLabel: "Thu 15", start: "10:30", end: "12:30", lane: 3, rowStart: 6, rowSpan: 4, tone: "default" },
-  { id: "ev4", title: "Team Sync", dayLabel: "Thu 15", start: "14:00", end: "15:00", lane: 3, rowStart: 13, rowSpan: 2, tone: "highlight", group: "FSD Core" },
+  { id: "ev1", title: "Product Strategy Sync", startAt: "2023-10-16T09:00:00", endAt: "2023-10-16T10:30:00", tone: "highlight" },
+  { id: "ev2", title: "Morning Coffee", startAt: "2023-10-19T09:00:00", endAt: "2023-10-19T10:00:00", tone: "default" },
+  { id: "ev3", title: "Deep Work Block", startAt: "2023-10-19T10:30:00", endAt: "2023-10-19T12:30:00", tone: "default" },
+  { id: "ev4", title: "Team Sync", startAt: "2023-10-19T14:00:00", endAt: "2023-10-19T15:00:00", tone: "highlight", group: "FSD Core" },
 ];
 
 export const todayAgenda = [

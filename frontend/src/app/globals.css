@@ -1,0 +1,389 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-open-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-open-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+}
+
+:root {
+  --font-open-sans: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-geist-mono: "SFMono-Regular", "Cascadia Code", "Fira Code", Consolas, monospace;
+  --background: #f7f7fb;
+  --foreground: #17181c;
+  --card: #ffffff;
+  --card-foreground: #17181c;
+  --popover: #ffffff;
+  --popover-foreground: #17181c;
+  --primary: #5b4dff;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f2f8;
+  --secondary-foreground: #17181c;
+  --muted: #f1f2f8;
+  --muted-foreground: #666b7a;
+  --accent: #efedff;
+  --accent-foreground: #17181c;
+  --destructive: #dc2626;
+  --border: #e6e7f0;
+  --input: #e6e7f0;
+  --ring: #5b4dff;
+  --radius: 1rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #17181c;
+  --sidebar-primary: #5b4dff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #efedff;
+  --sidebar-accent-foreground: #17181c;
+  --sidebar-border: #e6e7f0;
+  --sidebar-ring: #5b4dff;
+}
+
+.dark {
+  --background: #1a1a26;
+  --foreground: #f5f7fb;
+  --card: #20212f;
+  --card-foreground: #f5f7fb;
+  --popover: #20212f;
+  --popover-foreground: #f5f7fb;
+  --primary: #7c72ff;
+  --primary-foreground: #ffffff;
+  --secondary: #26273a;
+  --secondary-foreground: #f5f7fb;
+  --muted: #26273a;
+  --muted-foreground: #b6bdcf;
+  --accent: #2e2f4e;
+  --accent-foreground: #f5f7fb;
+  --destructive: #f87171;
+  --border: #37384f;
+  --input: #37384f;
+  --ring: #7c72ff;
+  --sidebar: #20212f;
+  --sidebar-foreground: #f5f7fb;
+  --sidebar-primary: #7c72ff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #26273a;
+  --sidebar-accent-foreground: #f5f7fb;
+  --sidebar-border: #37384f;
+  --sidebar-ring: #7c72ff;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply h-full font-sans;
+  }
+
+  body {
+    @apply min-h-full bg-background text-foreground antialiased;
+    background-image:
+      radial-gradient(circle at top, color-mix(in srgb, var(--primary) 8%, transparent), transparent 34%),
+      linear-gradient(180deg, color-mix(in srgb, var(--background) 88%, white 12%) 0%, var(--background) 100%);
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 20%, transparent);
+    color: var(--foreground);
+  }
+
+  button,
+  [role="button"],
+  a,
+  input,
+  textarea,
+  select {
+    @apply transition-colors duration-200;
+  }
+}
+
+@layer components {
+  .fsd-calendar .fc {
+    --fc-border-color: color-mix(in srgb, var(--border) 88%, transparent);
+    --fc-button-bg-color: var(--primary);
+    --fc-button-border-color: var(--primary);
+    --fc-button-hover-bg-color: color-mix(in srgb, var(--primary) 86%, black 14%);
+    --fc-button-hover-border-color: color-mix(in srgb, var(--primary) 86%, black 14%);
+    --fc-button-active-bg-color: color-mix(in srgb, var(--primary) 76%, black 24%);
+    --fc-button-active-border-color: color-mix(in srgb, var(--primary) 76%, black 24%);
+    --fc-neutral-bg-color: color-mix(in srgb, var(--muted) 70%, white 30%);
+    --fc-page-bg-color: transparent;
+    --fc-now-indicator-color: var(--primary);
+    /* Suppress FullCalendar's default blue event background — our fc-event-card handles all styling */
+    --fc-event-bg-color: transparent;
+    --fc-event-border-color: transparent;
+    --fc-event-text-color: inherit;
+    color: var(--foreground);
+  }
+
+  .fsd-calendar .fc .fc-scrollgrid,
+  .fsd-calendar .fc-theme-standard td,
+  .fsd-calendar .fc-theme-standard th {
+    border-color: color-mix(in srgb, var(--border) 88%, transparent);
+  }
+
+  .fsd-calendar .fc .fc-scrollgrid {
+    overflow: hidden;
+    border: 0;
+    border-radius: 1.75rem;
+    background: color-mix(in srgb, var(--card) 92%, transparent);
+  }
+
+  .fsd-calendar .fc .fc-col-header-cell {
+    background: color-mix(in srgb, var(--background) 78%, white 22%);
+  }
+
+  .fsd-calendar .fc .fc-col-header-cell-cushion,
+  .fsd-calendar .fc .fc-daygrid-day-number {
+    text-decoration: none;
+  }
+
+  .fsd-calendar .fc .fc-timegrid-axis-cushion,
+  .fsd-calendar .fc .fc-timegrid-slot-label-cushion,
+  .fsd-calendar .fc .fc-weekday-label {
+    padding: 0.9rem 0.75rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  .fsd-calendar .fc .fc-weekday-button {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    padding: 0.8rem 0.9rem;
+    background: transparent;
+    color: inherit;
+    overflow: hidden;
+  }
+
+  .fsd-calendar .fc .fc-weekday-button.is-selected {
+    background: color-mix(in srgb, var(--primary) 9%, transparent);
+  }
+
+  .fsd-calendar .fc .fc-weekday-button__label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+  }
+
+  .fsd-calendar .fc .fc-weekday-button__date {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    white-space: nowrap;
+    line-height: 1;
+  }
+
+  .fsd-calendar .fc .fc-timegrid-slot {
+    height: 4.5rem;
+  }
+
+  .fsd-calendar .fc .fc-timegrid-col.fc-day-selected,
+  .fsd-calendar .fc .fc-daygrid-day.fc-day-selected {
+    background: color-mix(in srgb, var(--primary) 5%, transparent);
+  }
+
+  .fsd-calendar .fc .fc-day-today {
+    background: color-mix(in srgb, var(--primary) 7%, transparent);
+  }
+
+  .fsd-calendar .fc .fc-daygrid-day-frame {
+    min-height: 8.5rem;
+  }
+
+  .fsd-calendar .fc .fc-daygrid-day-number {
+    padding: 0.85rem 0.95rem 0;
+    font-weight: 700;
+    color: var(--foreground);
+  }
+
+  .fsd-calendar .fc .fc-day-other .fc-daygrid-day-number {
+    color: color-mix(in srgb, var(--muted-foreground) 86%, transparent);
+  }
+
+  .fsd-calendar .fc .fc-timegrid-event-harness {
+    margin-inline: 0.45rem;
+  }
+
+  .fsd-calendar .fc .fc-daygrid-event-harness {
+    margin-inline: 0.22rem;
+    margin-block: 0.1rem;
+  }
+
+  .fsd-calendar .fc .fc-event {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .fsd-calendar .fc .fc-event-main {
+    padding: 0;
+  }
+
+  .fsd-calendar .fc .fc-event-card {
+    display: flex;
+    height: 100%;
+    min-height: 100%;
+    flex-direction: column;
+    gap: 0.22rem;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
+    border-radius: 1rem;
+    background: color-mix(in srgb, var(--card) 95%, transparent);
+    padding: 0.55rem 0.7rem;
+    box-shadow: 0 10px 24px -20px color-mix(in srgb, black 22%, transparent);
+  }
+
+  .fsd-calendar .fc .fc-event-highlight .fc-event-card {
+    border-color: color-mix(in srgb, var(--primary) 18%, transparent);
+    background: color-mix(in srgb, var(--primary) 11%, var(--card) 89%);
+  }
+
+  .fsd-calendar .fc .fc-event-muted .fc-event-card {
+    background: color-mix(in srgb, var(--background) 88%, white 12%);
+  }
+
+  .fsd-calendar .fc .fc-event-time {
+    flex-shrink: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  .fsd-calendar .fc .fc-event-title {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--foreground);
+    word-break: break-word;
+  }
+
+  .fsd-calendar .fc .fc-event-meta {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--primary);
+  }
+
+  /* Month view — standalone pill (no fc-event-card inheritance) */
+  .fsd-calendar .fc .fc-event-pill {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 0.4rem;
+    padding: 0.13rem 0.5rem;
+    background: color-mix(in srgb, var(--card) 96%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  }
+
+  .fsd-calendar .fc .fc-event-highlight .fc-event-pill {
+    background: color-mix(in srgb, var(--primary) 12%, var(--card) 88%);
+    border-color: color-mix(in srgb, var(--primary) 20%, transparent);
+  }
+
+  .fsd-calendar .fc .fc-event-muted .fc-event-pill {
+    background: color-mix(in srgb, var(--muted) 55%, transparent);
+    border-color: color-mix(in srgb, var(--border) 60%, transparent);
+  }
+
+  .fsd-calendar .fc .fc-event-pill__title {
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+  }
+
+  /* "+N more" link in month view */
+  .fsd-calendar .fc .fc-daygrid-more-link {
+    display: block;
+    margin-inline: 0.22rem;
+    padding: 0.1rem 0.52rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--primary);
+    border-radius: 0.5rem;
+  }
+
+  .fsd-calendar .fc .fc-daygrid-more-link:hover {
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+  }
+
+  /* Month view day header - plain text label */
+  .fsd-calendar .fc .fc-col-header-cell .fc-weekday-label {
+    display: block;
+    padding: 0.7rem 0.75rem;
+  }
+
+  .fsd-calendar .fc .fc-timegrid-now-indicator-line {
+    border-color: var(--primary);
+  }
+
+  .fsd-calendar .fc .fc-timegrid-now-indicator-arrow {
+    border-top-color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
+}

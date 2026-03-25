@@ -28,7 +28,7 @@ export function NotificationsWorkspace() {
       <PageHeader
         eyebrow="Inbox"
         title="Notifications"
-        description="This feed now supports filtering and read-state updates in the frontend, which makes the route behave like a real inbox instead of a static mock list."
+        description="Stay updated on group activity, invites, and scheduling changes. Filter by read state and mark items as read."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center rounded-full border border-border bg-card p-1">

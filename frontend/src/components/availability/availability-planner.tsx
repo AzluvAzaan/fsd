@@ -34,7 +34,7 @@ export function AvailabilityPlanner({ groupName }: AvailabilityPlannerProps) {
       <PageHeader
         eyebrow="Shared free slots"
         title={`${groupName} availability`}
-        description="The availability route now has working frontend filters and slot selection, so you can iterate on the flow before the backend availability solver is finished."
+        description="Find shared free windows across the group's schedule. Set a range, pick a duration, and narrow by participant count."
       />
 
       <SectionCard>
@@ -151,7 +151,7 @@ export function AvailabilityPlanner({ groupName }: AvailabilityPlannerProps) {
                 <div className="rounded-3xl bg-primary/8 p-4">
                   <p className="text-sm font-semibold text-primary">Draft ready</p>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    Prepared a mock request for {selectedSlot.date} at {selectedSlot.time}. This is frontend-only state for now.
+                    Draft ready for {selectedSlot.date} at {selectedSlot.time}. Review the details and send when you're ready.
                   </p>
                 </div>
               ) : null}

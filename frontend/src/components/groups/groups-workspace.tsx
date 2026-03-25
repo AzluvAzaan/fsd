@@ -20,7 +20,7 @@ export function GroupsWorkspace() {
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
   const [inviteCode, setInviteCode] = useState("");
-  const [message, setMessage] = useState("Create a new mock group or simulate joining one with an invite code.");
+  const [message, setMessage] = useState("Create a new group or join one with an invite code.");
 
   const activeGroup = items.find((group) => group.id === activeGroupId) ?? items[0];
 
@@ -31,7 +31,7 @@ export function GroupsWorkspace() {
     const nextGroup: Group = {
       id,
       name: groupName.trim(),
-      description: groupDescription.trim() || "New mock coordination group ready for UI review.",
+      description: groupDescription.trim() || "New coordination group.",
       members: 1,
       role: "Owner",
       nextWindow: "Best overlap: Set after invites",
@@ -43,7 +43,7 @@ export function GroupsWorkspace() {
     setGroupName("");
     setGroupDescription("");
     setPanelMode(null);
-    setMessage(`Created ${nextGroup.name} in frontend mock state.`);
+    setMessage(`Created ${nextGroup.name}.`);
   };
 
   const handleJoinGroup = () => {
@@ -53,7 +53,7 @@ export function GroupsWorkspace() {
     const joinedGroup: Group = {
       id: normalizedCode.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "invite-group",
       name: `Invite ${normalizedCode.toUpperCase()}`,
-      description: "Joined from a mock invite code. Replace with backend invite validation later.",
+      description: "Joined via invite code.",
       members: 4,
       role: "Member",
       nextWindow: "Best overlap: Fri 3:00 PM",
@@ -67,7 +67,7 @@ export function GroupsWorkspace() {
     setActiveGroupId(joinedGroup.id);
     setInviteCode("");
     setPanelMode(null);
-    setMessage(`Joined ${joinedGroup.name} in frontend mock state.`);
+    setMessage(`Joined ${joinedGroup.name}.`);
   };
 
   return (
@@ -75,14 +75,14 @@ export function GroupsWorkspace() {
       <PageHeader
         eyebrow="Collaboration"
         title="Your groups"
-        description="The groups landing page now includes working create and join flows in local frontend state, so the route is useful before the real group endpoints are ready."
+        description="Stay on top of your team groups, create new ones, or join existing groups with an invite code."
         actions={
           <>
             <button
               type="button"
               onClick={() => setPanelMode(panelMode === "join" ? null : "join")}
               className={cn(
-                "rounded-full border border-border px-4 py-2 text-sm font-medium",
+                "rounded-full border border-border px-4 py-2 text-sm font-medium transition-colors",
                 panelMode === "join" ? "border-primary/30 bg-primary/10 text-primary" : "bg-card hover:bg-muted",
               )}
             >
@@ -92,7 +92,7 @@ export function GroupsWorkspace() {
               type="button"
               onClick={() => setPanelMode(panelMode === "create" ? null : "create")}
               className={cn(
-                "rounded-full px-4 py-2 text-sm font-medium",
+                "rounded-full px-4 py-2 text-sm font-medium transition-colors",
                 panelMode === "create" ? "bg-primary/90 text-primary-foreground" : "bg-primary text-primary-foreground",
               )}
             >
@@ -106,7 +106,7 @@ export function GroupsWorkspace() {
         <SectionCard className="p-5">
           <p className="text-sm font-medium text-muted-foreground">Active groups</p>
           <p className="mt-3 text-3xl font-semibold">{items.length}</p>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">Mock groups you can browse immediately through the rest of the app.</p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">Groups you're currently coordinating.</p>
         </SectionCard>
         <SectionCard className="p-5">
           <p className="text-sm font-medium text-muted-foreground">Selected workspace</p>
@@ -114,7 +114,7 @@ export function GroupsWorkspace() {
           <p className="mt-2 text-sm leading-6 text-muted-foreground">{activeGroup?.nextWindow}</p>
         </SectionCard>
         <SectionCard className="p-5">
-          <p className="text-sm font-medium text-muted-foreground">Interaction state</p>
+          <p className="text-sm font-medium text-muted-foreground">Last action</p>
           <p className="mt-3 text-base font-semibold">{message}</p>
         </SectionCard>
       </div>
@@ -155,16 +155,16 @@ export function GroupsWorkspace() {
           <SectionCard>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Mock flow panel</p>
+                <p className="text-sm font-medium text-muted-foreground">Actions</p>
                 <h2 className="mt-2 text-2xl font-semibold tracking-tight">
                   {panelMode === "create" ? "Create group" : panelMode === "join" ? "Join group" : "Choose an action"}
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
                   {panelMode === "create"
-                    ? "This form adds a new mock group card immediately."
+                    ? "Fill in the details below to set up a new group."
                     : panelMode === "join"
-                      ? "Simulate invite-driven entry without the backend yet."
-                      : "Open one of the actions above to test the page flow."}
+                      ? "Enter your invite code to join an existing group."
+                      : "Use the buttons above to create or join a group."}
                 </p>
               </div>
               <div className="grid size-11 place-items-center rounded-2xl bg-primary/10 text-primary">
@@ -193,7 +193,7 @@ export function GroupsWorkspace() {
                   />
                 </label>
                 <button type="button" onClick={handleCreateGroup} className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
-                  Add mock group
+                  Create group
                 </button>
               </div>
             ) : null}
@@ -210,14 +210,14 @@ export function GroupsWorkspace() {
                   />
                 </label>
                 <button type="button" onClick={handleJoinGroup} className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
-                  Join in mock mode
+                  Join group
                 </button>
               </div>
             ) : null}
 
             {panelMode === null ? (
               <div className="mt-6 rounded-3xl border border-dashed border-border bg-muted/30 p-5 text-sm leading-6 text-muted-foreground">
-                Use this side panel to turn the dead header buttons into working UI flows without depending on backend group creation yet.
+                Select an action above to get started.
               </div>
             ) : null}
           </SectionCard>

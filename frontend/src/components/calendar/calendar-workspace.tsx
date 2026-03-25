@@ -48,25 +48,25 @@ const createEvent = (
 
 const personalCalendarEvents: CalendarEvent[] = [
   ...personalEvents,
-  createEvent("ev5", "Design Crit", "2023-10-23T10:00:00", "2023-10-23T11:30:00", "highlight"),
-  createEvent("ev6", "Client Review", "2023-10-24T13:00:00", "2023-10-24T14:00:00"),
-  createEvent("ev7", "Heads-down Build", "2023-10-25T09:00:00", "2023-10-25T12:00:00", "muted"),
-  createEvent("ev8", "Mentor Session", "2023-10-27T15:00:00", "2023-10-27T16:00:00"),
-  createEvent("ev9", "Weekly Planning", "2023-10-30T09:30:00", "2023-10-30T10:30:00", "highlight"),
-  createEvent("ev10", "Research Sprint", "2023-11-01T11:00:00", "2023-11-01T13:00:00"),
-  createEvent("ev11", "Coffee Catch-up", "2023-11-02T14:00:00", "2023-11-02T15:00:00", "muted"),
-  createEvent("ev12", "Demo Dry Run", "2023-11-03T16:00:00", "2023-11-03T17:00:00", "highlight"),
+  createEvent("ev5", "Design Crit", "2026-03-23T10:00:00", "2026-03-23T11:30:00", "highlight"),
+  createEvent("ev6", "Client Review", "2026-03-24T13:00:00", "2026-03-24T14:00:00"),
+  createEvent("ev7", "Heads-down Build", "2026-03-25T09:00:00", "2026-03-25T12:00:00", "muted"),
+  createEvent("ev8", "Mentor Session", "2026-03-25T15:00:00", "2026-03-25T16:00:00"),
+  createEvent("ev9", "Weekly Planning", "2026-03-23T09:30:00", "2026-03-23T10:30:00", "highlight"),
+  createEvent("ev10", "Research Sprint", "2026-03-26T11:00:00", "2026-03-26T13:00:00"),
+  createEvent("ev11", "Coffee Catch-up", "2026-03-27T14:00:00", "2026-03-27T15:00:00", "muted"),
+  createEvent("ev12", "Demo Dry Run", "2026-03-28T16:00:00", "2026-03-28T17:00:00", "highlight"),
 ];
 
 const buildGroupEvents = (groupName: string): CalendarEvent[] => [
-  createEvent(`${groupName}-1`, "Planning Sync", "2023-10-16T09:00:00", "2023-10-16T10:00:00", "highlight", groupName),
-  createEvent(`${groupName}-2`, "Engineering Review", "2023-10-17T11:00:00", "2023-10-17T12:30:00", "default", groupName),
-  createEvent(`${groupName}-3`, "No-meeting Block", "2023-10-18T13:00:00", "2023-10-18T15:00:00", "muted", groupName),
-  createEvent(`${groupName}-4`, "Shared Team Sync", "2023-10-19T14:00:00", "2023-10-19T15:30:00", "highlight", groupName),
-  createEvent(`${groupName}-5`, "Wrap-up", "2023-10-20T16:00:00", "2023-10-20T17:00:00", "default", groupName),
-  createEvent(`${groupName}-6`, "Retro Prep", "2023-10-23T10:00:00", "2023-10-23T11:00:00", "default", groupName),
-  createEvent(`${groupName}-7`, "Merged Availability Review", "2023-10-24T14:00:00", "2023-10-24T15:00:00", "highlight", groupName),
-  createEvent(`${groupName}-8`, "Async Feedback Window", "2023-10-26T09:00:00", "2023-10-26T11:00:00", "muted", groupName),
+  createEvent(`${groupName}-1`, "Planning Sync", "2026-03-16T09:00:00", "2026-03-16T10:00:00", "highlight", groupName),
+  createEvent(`${groupName}-2`, "Engineering Review", "2026-03-17T11:00:00", "2026-03-17T12:30:00", "default", groupName),
+  createEvent(`${groupName}-3`, "No-meeting Block", "2026-03-18T13:00:00", "2026-03-18T15:00:00", "muted", groupName),
+  createEvent(`${groupName}-4`, "Shared Team Sync", "2026-03-19T14:00:00", "2026-03-19T15:30:00", "highlight", groupName),
+  createEvent(`${groupName}-5`, "Wrap-up", "2026-03-20T16:00:00", "2026-03-20T17:00:00", "default", groupName),
+  createEvent(`${groupName}-6`, "Retro Prep", "2026-03-23T10:00:00", "2026-03-23T11:00:00", "default", groupName),
+  createEvent(`${groupName}-7`, "Merged Availability Review", "2026-03-24T14:00:00", "2026-03-24T15:00:00", "highlight", groupName),
+  createEvent(`${groupName}-8`, "Async Feedback Window", "2026-03-26T09:00:00", "2026-03-26T11:00:00", "muted", groupName),
 ];
 
 function getDateKey(value: Date | string) {
@@ -102,14 +102,18 @@ function toEventInput(event: CalendarEvent): EventInput {
 
 export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }: CalendarWorkspaceProps) {
   const calendarRef = useRef<FullCalendar | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [viewMode, setViewMode] = useState<"week" | "month">("week");
   const events = scope === "personal" ? personalCalendarEvents : buildGroupEvents(groupName);
-  const [calendarTitle, setCalendarTitle] = useState("Oct 16 - 22, 2023");
-  const [selectedDate, setSelectedDate] = useState(getDateKey(events[0]?.startAt ?? "2023-10-16T09:00:00"));
+  const [calendarTitle, setCalendarTitle] = useState("Mar 16 – 22, 2026");
+  const [selectedDate, setSelectedDate] = useState(getDateKey(events[0]?.startAt ?? "2026-03-16T09:00:00"));
   const [visibleRange, setVisibleRange] = useState({
-    start: new Date("2023-10-16T00:00:00"),
-    end: new Date("2023-10-23T00:00:00"),
+    start: new Date("2026-03-16T00:00:00"),
+    end: new Date("2026-03-23T00:00:00"),
   });
+
+  // Prevent SSR rendering of FullCalendar (avoids hydration mismatch + flushSync errors)
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     const api = calendarRef.current?.getApi();
@@ -117,7 +121,9 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
 
     const nextView = viewMode === "week" ? "timeGridWeek" : "dayGridMonth";
     if (api.view.type !== nextView) {
-      api.changeView(nextView);
+      // Defer changeView outside React's render cycle — FullCalendar 6.x calls
+      // flushSync internally, which throws if invoked during a React 19 render.
+      setTimeout(() => api.changeView(nextView), 0);
     }
   }, [viewMode]);
 
@@ -183,8 +189,8 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
         title={calendarTitle}
         description={
           scope === "personal"
-            ? "FullCalendar now drives the weekly and monthly workspace, so navigation, event placement, and day selection are using a real calendar grid before the backend calendar domain is finished."
-            : `${groupName} now uses a real FullCalendar workspace with working month and week views, date stepping, and aligned event blocks.`
+            ? "Browse, navigate, and coordinate your personal schedule. Switch between weekly and monthly views and inspect any day in detail."
+            : `Explore ${groupName}'s shared calendar. Navigate between views and inspect event blocks to find coordination windows.`
         }
         actions={
           <div className="flex flex-wrap items-center gap-2">
@@ -246,74 +252,86 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
       <SectionCard className="overflow-hidden p-0">
         <div className="fsd-calendar overflow-x-auto p-3 sm:p-4 lg:p-6">
           <div className="min-w-[760px]">
-            <FullCalendar
-              ref={calendarRef}
-              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-              initialView="timeGridWeek"
-              initialDate={events[0]?.startAt}
-              headerToolbar={false}
-              firstDay={1}
-              weekends
-              allDaySlot={false}
-              nowIndicator
-              stickyHeaderDates
-              editable={false}
-              selectable
-              selectMirror={false}
-              dayMaxEventRows={3}
-              slotDuration="00:30:00"
-              slotLabelInterval="01:00:00"
-              slotMinTime="08:00:00"
-              slotMaxTime="18:00:00"
-              height={viewMode === "week" ? 860 : "auto"}
-              contentHeight="auto"
-              eventDisplay="block"
-              slotEventOverlap={false}
-              events={events.map(toEventInput)}
-              datesSet={handleDatesSet}
-              dateClick={(arg) => setSelectedDate(getDateKey(arg.date))}
-              eventClick={(arg) => {
-                if (arg.event.start) {
-                  setSelectedDate(getDateKey(arg.event.start));
-                }
-              }}
-              dayCellClassNames={(arg) => (getDateKey(arg.date) === selectedDate ? ["fc-day-selected"] : [])}
-              dayHeaderContent={(arg) => {
-                if (arg.view.type !== "timeGridWeek") {
-                  return <span className="fc-weekday-label">{arg.text}</span>;
-                }
+            {mounted ? (
+              <FullCalendar
+                ref={calendarRef}
+                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                initialView="timeGridWeek"
+                initialDate={events[0]?.startAt}
+                headerToolbar={false}
+                firstDay={1}
+                weekends
+                allDaySlot={false}
+                nowIndicator
+                stickyHeaderDates
+                editable={false}
+                selectable
+                selectMirror={false}
+                dayMaxEventRows={3}
+                slotDuration="00:30:00"
+                slotLabelInterval="01:00:00"
+                slotMinTime="08:00:00"
+                slotMaxTime="18:00:00"
+                height={viewMode === "week" ? 860 : "auto"}
+                eventDisplay="block"
+                slotEventOverlap={false}
+                events={events.map(toEventInput)}
+                datesSet={handleDatesSet}
+                dateClick={(arg) => setSelectedDate(getDateKey(arg.date))}
+                eventClick={(arg) => {
+                  if (arg.event.start) {
+                    setSelectedDate(getDateKey(arg.event.start));
+                  }
+                }}
+                dayCellClassNames={(arg) => (getDateKey(arg.date) === selectedDate ? ["fc-day-selected"] : [])}
+                dayHeaderContent={(arg) => {
+                  if (arg.view.type !== "timeGridWeek") {
+                    return <span className="fc-weekday-label">{arg.text}</span>;
+                  }
 
-                const dateKey = getDateKey(arg.date);
-                const weekdayLabel = arg.date.toLocaleDateString("en-US", { weekday: "short" });
-                const dateLabel = arg.date.toLocaleDateString("en-US", { day: "numeric" });
+                  const dateKey = getDateKey(arg.date);
+                  const weekdayLabel = arg.date.toLocaleDateString("en-US", { weekday: "short" });
+                  const dateLabel = arg.date.toLocaleDateString("en-US", { day: "numeric" });
 
-                return (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDate(dateKey)}
-                    className={cn("fc-weekday-button", dateKey === selectedDate && "is-selected")}
-                  >
-                    <span className="fc-weekday-button__label">{weekdayLabel}</span>
-                    <span className="fc-weekday-button__date">{dateLabel}</span>
-                  </button>
-                );
-              }}
-              eventClassNames={(arg) => {
-                const tone = arg.event.extendedProps.tone as CalendarEvent["tone"];
-                return [
-                  "fc-event-shell",
-                  tone === "highlight" ? "fc-event-highlight" : "",
-                  tone === "muted" ? "fc-event-muted" : "",
-                ];
-              }}
-              eventContent={(arg: EventContentArg) => (
-                <div className="fc-event-card">
-                  <p className="fc-event-time">{arg.timeText}</p>
-                  <p className="fc-event-title">{arg.event.title}</p>
-                  {arg.event.extendedProps.group ? <p className="fc-event-meta">{arg.event.extendedProps.group as string}</p> : null}
-                </div>
-              )}
-            />
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDate(dateKey)}
+                      className={cn("fc-weekday-button", dateKey === selectedDate && "is-selected")}
+                    >
+                      <span className="fc-weekday-button__label">{weekdayLabel}</span>
+                      <span className="fc-weekday-button__date">{dateLabel}</span>
+                    </button>
+                  );
+                }}
+                eventClassNames={(arg) => {
+                  const tone = arg.event.extendedProps.tone as CalendarEvent["tone"];
+                  return [
+                    "fc-event-shell",
+                    tone === "highlight" ? "fc-event-highlight" : "",
+                    tone === "muted" ? "fc-event-muted" : "",
+                  ];
+                }}
+                eventContent={(arg: EventContentArg) => {
+                  if (arg.view.type === "dayGridMonth") {
+                    return (
+                      <div className="fc-event-pill">
+                        <p className="fc-event-pill__title">{arg.event.title}</p>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="fc-event-card">
+                      <p className="fc-event-time">{arg.timeText}</p>
+                      <p className="fc-event-title">{arg.event.title}</p>
+                      {arg.event.extendedProps.group ? <p className="fc-event-meta">{arg.event.extendedProps.group as string}</p> : null}
+                    </div>
+                  );
+                }}
+              />
+            ) : (
+              <div style={{ height: viewMode === "week" ? 860 : 560 }} className="rounded-3xl bg-muted/20" />
+            )}
           </div>
         </div>
       </SectionCard>
@@ -326,8 +344,8 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
               <h2 className="mt-2 text-2xl font-semibold tracking-tight">{selectedDayLabel}</h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
                 {selectedEvents.length > 0
-                  ? "Use this panel to inspect the current day without losing context in the main calendar layout."
-                  : "This day is open right now, which makes it a good candidate for a new request or deep work block."}
+                  ? "Inspect the events for this day without losing context in the main calendar view."
+                  : "Nothing scheduled yet — a good window for a new request or focused work."}
               </p>
             </div>
             <span className="rounded-full bg-primary/10 px-3 py-1.5 text-sm font-semibold text-primary">
@@ -354,7 +372,7 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
               ))
             ) : (
               <div className="rounded-3xl border border-dashed border-border bg-muted/30 p-6 text-sm leading-6 text-muted-foreground">
-                No events are blocking this day in the mock schedule.
+                Nothing scheduled for this day yet.
               </div>
             )}
           </div>
@@ -371,12 +389,6 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
                 <p className="mt-3 text-sm font-medium text-primary">{request.proposedTime}</p>
               </div>
             ))}
-          </div>
-          <div className="mt-6 rounded-3xl bg-primary/8 p-4">
-            <p className="text-sm font-semibold text-primary">Why this page is mock-first</p>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              The UI now runs on a real calendar component with working interactions and aligned event placement, while the data contract still stays simple enough to swap to the real calendar endpoints later.
-            </p>
           </div>
         </SectionCard>
       </div>

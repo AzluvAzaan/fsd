@@ -11,14 +11,14 @@ export function SettingsWorkspace() {
   const [displayName, setDisplayName] = useState("Azluv");
   const [dailyDigest, setDailyDigest] = useState(true);
   const [compactCalendar, setCompactCalendar] = useState(false);
-  const [saveMessage, setSaveMessage] = useState("Local frontend preferences are ready to be wired to a real settings API later.");
+  const [saveMessage, setSaveMessage] = useState("Your preferences are saved locally.");
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Preferences"
         title="Settings"
-        description="This route now has working frontend controls for profile and preference state, instead of static placeholder cards."
+        description="Manage your profile, workspace preferences, and display settings."
       />
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
@@ -41,7 +41,7 @@ export function SettingsWorkspace() {
               </div>
               <button
                 type="button"
-                onClick={() => setSaveMessage(`Saved mock profile settings for ${displayName || "this user"}.`)}
+                onClick={() => setSaveMessage(`Profile updated for ${displayName || "your account"}.`)}
                 className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
               >
                 Save profile
@@ -86,7 +86,7 @@ export function SettingsWorkspace() {
             <p className="text-sm font-medium text-muted-foreground">Appearance</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight">Theme</h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              The global theme switch already works. This page now gives it a real destination inside settings too.
+              Choose between light and dark to match your working environment.
             </p>
             <div className="mt-6 flex items-center justify-between rounded-3xl border border-border/70 bg-background/70 p-4">
               <div>
@@ -101,7 +101,7 @@ export function SettingsWorkspace() {
             <p className="text-sm font-medium text-muted-foreground">Save state</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight">Status</h2>
             <div className="mt-6 rounded-3xl bg-primary/8 p-4">
-              <p className="text-sm font-semibold text-primary">Frontend persistence placeholder</p>
+              <p className="text-sm font-semibold text-primary">Save status</p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">{saveMessage}</p>
             </div>
           </SectionCard>

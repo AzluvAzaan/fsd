@@ -53,10 +53,10 @@ export type IntegrationItem = {
 };
 
 export const personalEvents: CalendarEvent[] = [
-  { id: "ev1", title: "Product Strategy Sync", startAt: "2023-10-16T09:00:00", endAt: "2023-10-16T10:30:00", tone: "highlight" },
-  { id: "ev2", title: "Morning Coffee", startAt: "2023-10-19T09:00:00", endAt: "2023-10-19T10:00:00", tone: "default" },
-  { id: "ev3", title: "Deep Work Block", startAt: "2023-10-19T10:30:00", endAt: "2023-10-19T12:30:00", tone: "default" },
-  { id: "ev4", title: "Team Sync", startAt: "2023-10-19T14:00:00", endAt: "2023-10-19T15:00:00", tone: "highlight", group: "FSD Core" },
+  { id: "ev1", title: "Product Strategy Sync", startAt: "2026-03-16T09:00:00", endAt: "2026-03-16T10:30:00", tone: "highlight" },
+  { id: "ev2", title: "Morning Coffee", startAt: "2026-03-19T09:00:00", endAt: "2026-03-19T10:00:00", tone: "default" },
+  { id: "ev3", title: "Deep Work Block", startAt: "2026-03-19T10:30:00", endAt: "2026-03-19T12:30:00", tone: "default" },
+  { id: "ev4", title: "Team Sync", startAt: "2026-03-19T14:00:00", endAt: "2026-03-19T15:00:00", tone: "highlight", group: "FSD Core" },
 ];
 
 export const todayAgenda = [
@@ -80,15 +80,15 @@ export const groupMembers = [
 ];
 
 export const availabilitySlots: AvailabilitySlot[] = [
-  { id: "slot-1", date: "Tuesday, Oct 17", time: "2:00 PM - 3:00 PM", confidence: "Best overlap", participants: ["Azluv", "Sarah", "Ryan", "Iman"], note: "4/5 members free; ideal for product sync." },
-  { id: "slot-2", date: "Wednesday, Oct 18", time: "11:00 AM - 12:00 PM", confidence: "Good overlap", participants: ["Azluv", "Ryan", "Iman"], note: "3/5 members free; lighter coordination slot." },
-  { id: "slot-3", date: "Thursday, Oct 19", time: "4:00 PM - 5:30 PM", confidence: "Strong overlap", participants: ["Azluv", "Sarah", "Jia", "Iman"], note: "4/5 members free; good for longer discussion." },
+  { id: "slot-1", date: "Tuesday, Mar 17", time: "2:00 PM - 3:00 PM", confidence: "Best overlap", participants: ["Azluv", "Sarah", "Ryan", "Iman"], note: "4/5 members free; ideal for product sync." },
+  { id: "slot-2", date: "Wednesday, Mar 18", time: "11:00 AM - 12:00 PM", confidence: "Good overlap", participants: ["Azluv", "Ryan", "Iman"], note: "3/5 members free; lighter coordination slot." },
+  { id: "slot-3", date: "Thursday, Mar 19", time: "4:00 PM - 5:30 PM", confidence: "Strong overlap", participants: ["Azluv", "Sarah", "Jia", "Iman"], note: "4/5 members free; good for longer discussion." },
 ];
 
 export const requests: RequestItem[] = [
-  { id: "req-1", title: "Sprint planning", type: "received", group: "FSD Core", proposedTime: "Tue, Oct 17 · 2:00 PM", status: "pending", from: "Sarah" },
-  { id: "req-2", title: "Capstone review", type: "sent", group: "Capstone Crew", proposedTime: "Wed, Oct 18 · 11:00 AM", status: "pending", from: "Azluv" },
-  { id: "req-3", title: "Weekend meetup", type: "received", group: "Weekend Plans", proposedTime: "Sat, Oct 21 · 4:00 PM", status: "accepted", from: "Ryan" },
+  { id: "req-1", title: "Sprint planning", type: "received", group: "FSD Core", proposedTime: "Tue, Mar 17 · 2:00 PM", status: "pending", from: "Sarah" },
+  { id: "req-2", title: "Capstone review", type: "sent", group: "Capstone Crew", proposedTime: "Wed, Mar 18 · 11:00 AM", status: "pending", from: "Azluv" },
+  { id: "req-3", title: "Weekend meetup", type: "received", group: "Weekend Plans", proposedTime: "Sat, Mar 21 · 4:00 PM", status: "accepted", from: "Ryan" },
 ];
 
 export const notifications: NotificationItem[] = [

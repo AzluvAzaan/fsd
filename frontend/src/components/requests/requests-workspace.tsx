@@ -30,7 +30,7 @@ export function RequestsWorkspace() {
       <PageHeader
         eyebrow="Coordination"
         title="Requests"
-        description="The request inbox is now interactive: you can filter entries, inspect one in detail, and drive accept or decline state entirely from the frontend."
+        description="Track incoming and outgoing event proposals. Filter by type and respond to pending requests."
         actions={
           <div className="flex items-center rounded-full border border-border bg-card p-1">
             {typeFilters.map((type) => (
@@ -51,7 +51,7 @@ export function RequestsWorkspace() {
       />
 
       {filteredItems.length === 0 ? (
-        <EmptyState title="No requests in this view" body="Try another filter or wait until more request states are mocked into the page." />
+        <EmptyState title="No requests in this view" body="Try a different filter or check back when new requests arrive." />
       ) : (
         <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <RequestList

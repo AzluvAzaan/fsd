@@ -8,9 +8,9 @@ import { SectionCard } from "@/components/shared/section-card";
 import { integrations, type IntegrationItem } from "@/lib/constants/mock-data";
 
 const nextIntegrationState: Record<string, Pick<IntegrationItem, "status" | "actionLabel">> = {
-  "google-calendar": { status: "Connection drafted", actionLabel: "Connected in mock mode" },
-  "gmail-auth": { status: "Flow reviewed", actionLabel: "Ready for backend hook-up" },
-  "text-parser": { status: "UI placeholder approved", actionLabel: "Mock design captured" },
+  "google-calendar": { status: "Connected", actionLabel: "Manage connection" },
+  "gmail-auth": { status: "Authorized", actionLabel: "Review permissions" },
+  "text-parser": { status: "Active", actionLabel: "Configure parser" },
 };
 
 export function IntegrationsWorkspace() {
@@ -35,7 +35,7 @@ export function IntegrationsWorkspace() {
       <PageHeader
         eyebrow="Connections"
         title="Integrations"
-        description="The integration cards now respond to actions in local state so you can iterate on status messaging and layout before auth and sync endpoints are fully available."
+        description="Connect your calendars and external services to keep your schedule in sync across platforms."
       />
 
       <div className="grid gap-4 lg:grid-cols-3">

@@ -1,6 +1,6 @@
 # FSD Frontend Master Plan
 
-_Last updated: 2026-03-22_
+_Last updated: 2026-03-25_
 
 This file is the working blueprint for the FSD web app frontend.
 
@@ -889,44 +889,31 @@ That way replacing mock data later is easy.
 
 # 14. Implementation Phases
 
-## Phase 0 — Already done / in progress
+## Phase 0 — Done
 - starter Next frontend scaffolded
 - basic backend test page exists
 - README exists
 - this master plan exists
 
-## Phase 1 — Shell + route skeleton
+## Phase 1 — Done
+- `(public)` and `(app)` route groups built
+- app shell, sidebar, topbar, right rail implemented
+- all major routes render with no dead ends
 
-Build:
-- `(public)` route group
-- `(app)` route group
-- app shell
-- sidebar
-- topbar
-- right rail pattern
+## Phase 2 — Done
+- static/mock versions of all core pages built:
+  - landing, login, calendar, groups, group detail, availability, requests, notifications, integrations, settings
+- FullCalendar integrated for personal and group calendar pages (week + month views, day selection, event placement)
+- all workspace pages have working interactive state (filters, panels, CRUD flows in frontend state)
+- mock data abstracted into `lib/constants/mock-data.ts` ready to swap for real API calls
 
-Deliverables:
-- navigation structure exists
-- all major routes render
-- no route is a dead end
-
-## Phase 2 — Static high-fidelity pages
-
-Build static/mock versions of:
-- landing
-- login
-- calendar
-- groups
-- group detail
-- availability
-- requests
-- notifications
-- integrations
-
-Deliverables:
-- product looks like a real app
-- visual system is established
-- screens can be reviewed against wireframes
+## Phase 2.5 — Done (2026-03-25 UI polish pass)
+- **Color palette applied:** light mode = white + purple, dark mode = grey + purple (not black). Dark surfaces shifted from near-black `#121318` to grey-purple `#1a1a26` baseline.
+- **Calendar fixes:** text clipping eliminated (overflow, line-clamp, ellipsis applied to event cards, weekday buttons, labels). Event card padding and font sizes tuned for alignment.
+- **Collapsible right rail:** right rail (2xl+ sidebar) now slides in/out with smooth 300ms width transition. Toggle button in topbar. Close button inside the rail.
+- **Mobile sidebar:** hamburger button added to topbar. Sidebar slides in from left as an overlay with smooth translate transition. Backdrop dismisses it.
+- **Dev mode badge:** amber pill with animated pulse dot added to topbar, visible on all app pages. Replaces the verbose mock-data explanations that were scattered across page descriptions.
+- **Mock text purge:** all "this is mock-first", "FullCalendar now drives", "frontend-only state", and similar dev commentary removed from every workspace page description and inline text. Pages now read as real product copy.
 
 ## Phase 3 — Real user/backend plumbing
 
@@ -941,7 +928,7 @@ Deliverables:
 ## Phase 4 — Group + request flows
 
 Implement:
-- create/join group forms
+- create/join group forms (frontend state already done, wire to backend)
 - group detail interactions
 - requests UI structure
 
@@ -949,14 +936,12 @@ Use mock data if backend incomplete.
 
 ## Phase 5 — Calendar refinement
 
-Implement:
-- strong weekly calendar page
-- event cards
-- detail panel
-- day selection behavior
-- availability result UI
+FullCalendar is already integrated (week + month views, day selection, event cards).
 
-Evaluate FullCalendar only if necessary.
+Remaining:
+- wire real calendar data from backend
+- refine event drag/drop if needed
+- availability result UI improvements
 
 ## Phase 6 — Auth and integrations
 
@@ -967,11 +952,10 @@ Implement when backend is ready:
 
 ## Phase 7 — Polish
 
-- dark mode tuning
-- empty/loading/error states
-- mobile responsiveness
+- loading/error/empty state improvements
+- full mobile responsiveness pass
 - accessibility pass
-- data-state polish
+- animation and transition refinements
 
 ---
 

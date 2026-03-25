@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { CalendarWorkspace } from "@/components/calendar/calendar-workspace";
+import { CalendarClient } from "@/components/calendar/calendar-client";
 import { groups } from "@/lib/constants/mock-data";
 
 export default async function GroupCalendarPage({ params }: { params: Promise<{ groupId: string }> }) {
@@ -8,5 +8,5 @@ export default async function GroupCalendarPage({ params }: { params: Promise<{ 
   const group = groups.find((item) => item.id === groupId);
   if (!group) notFound();
 
-  return <CalendarWorkspace scope="group" groupName={group.name} />;
+  return <CalendarClient scope="group" groupName={group.name} />;
 }

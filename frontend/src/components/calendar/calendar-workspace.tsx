@@ -402,17 +402,14 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow={scope === "personal" ? "Personal workspace" : "Group calendar"}
-        title={calendarTitle}
-        description={
-          scope === "personal"
-            ? "Browse, navigate, and coordinate your personal schedule. Switch between weekly and monthly views and inspect any day in detail."
-            : `Combined view of all ${groupName} member schedules. Find overlap windows and coordinate meetings.`
-        }
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
+    <div className="space-y-4">
+      {scope === "personal" ? (
+        <div className="flex items-center justify-between gap-4 rounded-[2rem] border border-border/70 bg-card/90 px-7 py-5 shadow-sm">
+          <div>
+            <p className="text-xs font-medium tracking-[0.08em] text-muted-foreground">Personal calendar</p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight">{calendarTitle}</h1>
+          </div>
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => handleCalendarMove(-1)}
@@ -445,28 +442,71 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
               ))}
             </div>
           </div>
-        }
-      />
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        {summaryCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <SectionCard key={card.label} className="p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">{card.label}</p>
-                  <p className="mt-3 text-2xl font-semibold tracking-tight">{card.value}</p>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{card.note}</p>
-                </div>
-                <div className="grid size-11 place-items-center rounded-2xl bg-primary/10 text-primary">
-                  <Icon className="size-5" />
-                </div>
+        </div>
+      ) : (
+        <PageHeader
+          eyebrow="Group calendar"
+          title={calendarTitle}
+          description={`Combined view of all ${groupName} member schedules. Find overlap windows and coordinate meetings.`}
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleCalendarMove(-1)}
+                className={cn(buttonVariants({ variant: "outline", size: "icon-lg" }), "rounded-full bg-card")}
+                aria-label="Previous range"
+              >
+                <ChevronLeft className="size-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCalendarMove(1)}
+                className={cn(buttonVariants({ variant: "outline", size: "icon-lg" }), "rounded-full bg-card")}
+                aria-label="Next range"
+              >
+                <ChevronRight className="size-4" />
+              </button>
+              <div className="flex items-center rounded-full border border-border bg-card p-1 shadow-sm">
+                {(["week", "month"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setViewMode(mode)}
+                    className={cn(
+                      "rounded-full px-4 py-2 text-sm font-medium capitalize",
+                      viewMode === mode ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {mode}
+                  </button>
+                ))}
               </div>
-            </SectionCard>
-          );
-        })}
-      </div>
+            </div>
+          }
+        />
+      )}
+
+      {scope === "group" && (
+        <div className="grid gap-4 lg:grid-cols-3">
+          {summaryCards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <SectionCard key={card.label} className="p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">{card.label}</p>
+                    <p className="mt-3 text-2xl font-semibold tracking-tight">{card.value}</p>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{card.note}</p>
+                  </div>
+                  <div className="grid size-11 place-items-center rounded-2xl bg-primary/10 text-primary">
+                    <Icon className="size-5" />
+                  </div>
+                </div>
+              </SectionCard>
+            );
+          })}
+        </div>
+      )}
 
       <SectionCard className="overflow-hidden p-0">
         {(scope === "group" || personalLegendItems.length > 0) && (
@@ -723,32 +763,26 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
         </div>
       </SectionCard>
 
-      <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-        <SectionCard>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Selected day</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight">{selectedDayLabel}</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                {scope === "group"
-                  ? selectedEvents.length > 0
+      {scope === "group" && (
+        <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
+          <SectionCard>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Selected day</p>
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight">{selectedDayLabel}</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                  {selectedEvents.length > 0
                     ? "Member schedules for this day. Free members are available for coordination."
-                    : "No one has events on this day — a wide-open window for the whole group."
-                  : selectedEvents.length > 0
-                    ? "Inspect the events for this day without losing context in the main calendar view."
-                    : "Nothing scheduled yet — a good window for a new request or focused work."}
-              </p>
+                    : "No one has events on this day — a wide-open window for the whole group."}
+                </p>
+              </div>
+              <span className="rounded-full bg-primary/10 px-3 py-1.5 text-sm font-semibold text-primary">
+                {`${selectedMemberBreakdown.filter((m) => m.events.length > 0).length} busy`}
+              </span>
             </div>
-            <span className="rounded-full bg-primary/10 px-3 py-1.5 text-sm font-semibold text-primary">
-              {scope === "group"
-                ? `${selectedMemberBreakdown.filter((m) => m.events.length > 0).length} busy`
-                : `${selectedEvents.length} item${selectedEvents.length === 1 ? "" : "s"}`}
-            </span>
-          </div>
 
-          <div className="mt-6 space-y-3">
-            {scope === "group" ? (
-              selectedMemberBreakdown.map(({ member, events: memberDayEvents }) => (
+            <div className="mt-6 space-y-3">
+              {selectedMemberBreakdown.map(({ member, events: memberDayEvents }) => (
                 <div key={member.name} className="rounded-3xl border border-border/70 bg-background/70 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -783,93 +817,48 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
                     </div>
                   )}
                 </div>
-              ))
-            ) : selectedEvents.length > 0 ? (
-              selectedEvents.map((event) => (
-                <div key={event.id} className="rounded-3xl border border-border/70 bg-background/70 p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-base font-semibold">{event.title}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {formatEventTimeRange(event.startAt, event.endAt)}
-                      </p>
-                    </div>
-                    <span
-                      className="rounded-full px-3 py-1 text-xs font-semibold"
-                      style={{
-                        background: `${personalCategoryMeta[personalEventCategories[event.id] ?? "Personal"].color}18`,
-                        color: personalCategoryMeta[personalEventCategories[event.id] ?? "Personal"].color,
-                      }}
-                    >
-                      {personalEventCategories[event.id] ?? "Personal"}
+              ))}
+            </div>
+          </SectionCard>
+
+          <SectionCard>
+            <p className="text-sm font-medium text-muted-foreground">Overlap analysis</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight">Best meeting windows</h2>
+            <div className="mt-6 space-y-3">
+              {availabilitySlots.map((slot) => (
+                <div key={slot.id} className="rounded-3xl border border-border/70 bg-background/70 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-semibold text-sm">{slot.date}</p>
+                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary flex-shrink-0">
+                      {slot.confidence}
                     </span>
                   </div>
-                  {event.group ? <p className="mt-3 text-sm font-medium text-primary">{event.group}</p> : null}
-                </div>
-              ))
-            ) : (
-              <div className="rounded-3xl border border-dashed border-border bg-muted/30 p-6 text-sm leading-6 text-muted-foreground">
-                Nothing scheduled for this day yet.
-              </div>
-            )}
-          </div>
-        </SectionCard>
-
-        <SectionCard>
-          {scope === "group" ? (
-            <>
-              <p className="text-sm font-medium text-muted-foreground">Overlap analysis</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight">Best meeting windows</h2>
-              <div className="mt-6 space-y-3">
-                {availabilitySlots.map((slot) => (
-                  <div key={slot.id} className="rounded-3xl border border-border/70 bg-background/70 p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="font-semibold text-sm">{slot.date}</p>
-                      <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary flex-shrink-0">
-                        {slot.confidence}
-                      </span>
-                    </div>
-                    <p className="mt-1.5 text-sm font-medium text-primary">{slot.time}</p>
-                    <p className="mt-2 text-xs text-muted-foreground">{slot.note}</p>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {slot.participants.map((name) => {
-                        const member = groupMembers.find((m) => m.name === name);
-                        return (
+                  <p className="mt-1.5 text-sm font-medium text-primary">{slot.time}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">{slot.note}</p>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {slot.participants.map((name) => {
+                      const member = groupMembers.find((m) => m.name === name);
+                      return (
+                        <span
+                          key={name}
+                          className="flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+                          style={member ? { background: `${member.color}18`, color: member.color } : undefined}
+                        >
                           <span
-                            key={name}
-                            className="flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
-                            style={member ? { background: `${member.color}18`, color: member.color } : undefined}
-                          >
-                            <span
-                              className="inline-block size-1.5 rounded-full flex-shrink-0"
-                              style={{ background: member?.color }}
-                            />
-                            {name}
-                          </span>
-                        );
-                      })}
-                    </div>
+                            className="inline-block size-1.5 rounded-full flex-shrink-0"
+                            style={{ background: member?.color }}
+                          />
+                          {name}
+                        </span>
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="text-sm font-medium text-muted-foreground">Request context</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight">Coordination status</h2>
-              <div className="mt-6 space-y-3">
-                {requests.filter((request) => request.status === "pending").map((request) => (
-                  <div key={request.id} className="rounded-3xl border border-border/70 bg-background/70 p-4">
-                    <p className="font-semibold">{request.title}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{request.group}</p>
-                    <p className="mt-3 text-sm font-medium text-primary">{request.proposedTime}</p>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </SectionCard>
-      </div>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        </div>
+      )}
 
       {hoverTooltip && !clickedEvent && (
         <div

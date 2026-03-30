@@ -1,32 +1,25 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Plus, Users } from "lucide-react";
 
-import { GroupGrid } from "@/components/groups/group-grid";
+import { Modal } from "@/components/shared/modal";
 import { PageHeader } from "@/components/shared/page-header";
-import { SectionCard } from "@/components/shared/section-card";
 import { groups, type Group } from "@/lib/constants/mock-data";
 import { cn } from "@/lib/utils";
 
-type PanelMode = "create" | "join" | null;
-
-const initialGroup = groups[0]?.id ?? "";
+type ModalMode = "create" | "join" | null;
 
 export function GroupsWorkspace() {
   const [items, setItems] = useState<Group[]>(groups);
-  const [panelMode, setPanelMode] = useState<PanelMode>(null);
-  const [activeGroupId, setActiveGroupId] = useState(initialGroup);
+  const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
   const [inviteCode, setInviteCode] = useState("");
-  const [message, setMessage] = useState("Create a new group or join one with an invite code.");
-
-  const activeGroup = items.find((group) => group.id === activeGroupId) ?? items[0];
 
   const handleCreateGroup = () => {
     if (!groupName.trim()) return;
-
     const id = groupName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-");
     const nextGroup: Group = {
       id,
@@ -37,192 +30,198 @@ export function GroupsWorkspace() {
       nextWindow: "Best overlap: Set after invites",
       accent: "from-violet-500 to-indigo-500",
     };
-
     setItems([nextGroup, ...items]);
-    setActiveGroupId(nextGroup.id);
     setGroupName("");
     setGroupDescription("");
-    setPanelMode(null);
-    setMessage(`Created ${nextGroup.name}.`);
+    setModalMode(null);
   };
 
   const handleJoinGroup = () => {
-    const normalizedCode = inviteCode.trim();
-    if (!normalizedCode) return;
-
+    const code = inviteCode.trim();
+    if (!code) return;
     const joinedGroup: Group = {
-      id: normalizedCode.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "invite-group",
-      name: `Invite ${normalizedCode.toUpperCase()}`,
+      id: code.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "invite-group",
+      name: `Invite ${code.toUpperCase()}`,
       description: "Joined via invite code.",
       members: 4,
       role: "Member",
       nextWindow: "Best overlap: Fri 3:00 PM",
       accent: "from-indigo-500 to-sky-500",
     };
-
-    const existing = items.find((group) => group.id === joinedGroup.id);
-    const nextItems = existing ? items : [joinedGroup, ...items];
-
-    setItems(nextItems);
-    setActiveGroupId(joinedGroup.id);
+    const existing = items.find((g) => g.id === joinedGroup.id);
+    if (!existing) setItems([joinedGroup, ...items]);
     setInviteCode("");
-    setPanelMode(null);
-    setMessage(`Joined ${joinedGroup.name}.`);
+    setModalMode(null);
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="Collaboration"
-        title="Your groups"
-        description="Stay on top of your team groups, create new ones, or join existing groups with an invite code."
-        actions={
-          <>
+    <>
+      <div className="space-y-8">
+        <PageHeader
+          eyebrow="Collaboration"
+          title="Your groups"
+          description="Coordinate with your teams, view merged calendars, and find the best time to meet."
+          actions={
+            <>
+              <button
+                type="button"
+                onClick={() => setModalMode("join")}
+                className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
+              >
+                Join group
+              </button>
+              <button
+                type="button"
+                onClick={() => setModalMode("create")}
+                className="flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                <Plus className="size-4" />
+                Create group
+              </button>
+            </>
+          }
+        />
+
+        {items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-border bg-card/50 py-24 text-center">
+            <div className="mb-4 grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary">
+              <Users className="size-6" />
+            </div>
+            <p className="text-lg font-semibold">No groups yet</p>
+            <p className="mt-2 text-sm text-muted-foreground">Create a group or join one with an invite code.</p>
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {items.map((group) => (
+              <GroupCard key={group.id} group={group} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Create group modal */}
+      <Modal
+        open={modalMode === "create"}
+        onClose={() => setModalMode(null)}
+        title="Create a group"
+        description="Set up a new coordination group and invite your team."
+      >
+        <div className="space-y-4">
+          <label className="block">
+            <span className="text-sm font-medium">Group name</span>
+            <input
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary/50"
+              placeholder="FSD Design Sprint"
+              autoFocus
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-medium">Description</span>
+            <textarea
+              value={groupDescription}
+              onChange={(e) => setGroupDescription(e.target.value)}
+              className="mt-2 min-h-24 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary/50 resize-none"
+              placeholder="Describe what this group coordinates."
+            />
+          </label>
+          <div className="flex justify-end gap-3 pt-1">
             <button
               type="button"
-              onClick={() => setPanelMode(panelMode === "join" ? null : "join")}
-              className={cn(
-                "rounded-full border border-border px-4 py-2 text-sm font-medium transition-colors",
-                panelMode === "join" ? "border-primary/30 bg-primary/10 text-primary" : "bg-card hover:bg-muted",
-              )}
+              onClick={() => setModalMode(null)}
+              className="rounded-full border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
             >
-              Join group
+              Cancel
             </button>
             <button
               type="button"
-              onClick={() => setPanelMode(panelMode === "create" ? null : "create")}
-              className={cn(
-                "rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                panelMode === "create" ? "bg-primary/90 text-primary-foreground" : "bg-primary text-primary-foreground",
-              )}
+              onClick={handleCreateGroup}
+              disabled={!groupName.trim()}
+              className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-40"
             >
               Create group
             </button>
-          </>
-        }
-      />
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <SectionCard className="p-5">
-          <p className="text-sm font-medium text-muted-foreground">Active groups</p>
-          <p className="mt-3 text-3xl font-semibold">{items.length}</p>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">Groups you're currently coordinating.</p>
-        </SectionCard>
-        <SectionCard className="p-5">
-          <p className="text-sm font-medium text-muted-foreground">Selected workspace</p>
-          <p className="mt-3 text-2xl font-semibold tracking-tight">{activeGroup?.name}</p>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">{activeGroup?.nextWindow}</p>
-        </SectionCard>
-        <SectionCard className="p-5">
-          <p className="text-sm font-medium text-muted-foreground">Last action</p>
-          <p className="mt-3 text-base font-semibold">{message}</p>
-        </SectionCard>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="space-y-6">
-          <GroupGrid items={items} activeGroupId={activeGroupId} onSelect={setActiveGroupId} />
+          </div>
         </div>
+      </Modal>
 
-        <div className="space-y-6">
-          <SectionCard>
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Selected group</p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight">{activeGroup?.name}</h2>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{activeGroup?.description}</p>
-              </div>
-              <div className="grid size-11 place-items-center rounded-2xl bg-primary/10 text-primary">
-                <Users className="size-5" />
-              </div>
-            </div>
-            <div className="mt-6 grid gap-3">
-              <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
-                <p className="text-sm font-medium text-muted-foreground">Role</p>
-                <p className="mt-2 text-lg font-semibold">{activeGroup?.role}</p>
-              </div>
-              <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
-                <p className="text-sm font-medium text-muted-foreground">Members</p>
-                <p className="mt-2 text-lg font-semibold">{activeGroup?.members}</p>
-              </div>
-              <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
-                <p className="text-sm font-medium text-muted-foreground">Next overlap</p>
-                <p className="mt-2 text-lg font-semibold">{activeGroup?.nextWindow}</p>
-              </div>
-            </div>
-          </SectionCard>
+      {/* Join group modal */}
+      <Modal
+        open={modalMode === "join"}
+        onClose={() => setModalMode(null)}
+        title="Join a group"
+        description="Enter an invite code to join an existing group."
+      >
+        <div className="space-y-4">
+          <label className="block">
+            <span className="text-sm font-medium">Invite code</span>
+            <input
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value)}
+              className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary/50"
+              placeholder="fsd-core-invite"
+              autoFocus
+            />
+          </label>
+          <div className="flex justify-end gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => setModalMode(null)}
+              className="rounded-full border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleJoinGroup}
+              disabled={!inviteCode.trim()}
+              className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-40"
+            >
+              Join group
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </>
+  );
+}
 
-          <SectionCard>
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Actions</p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight">
-                  {panelMode === "create" ? "Create group" : panelMode === "join" ? "Join group" : "Choose an action"}
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {panelMode === "create"
-                    ? "Fill in the details below to set up a new group."
-                    : panelMode === "join"
-                      ? "Enter your invite code to join an existing group."
-                      : "Use the buttons above to create or join a group."}
-                </p>
-              </div>
-              <div className="grid size-11 place-items-center rounded-2xl bg-primary/10 text-primary">
-                <Plus className="size-5" />
-              </div>
-            </div>
-
-            {panelMode === "create" ? (
-              <div className="mt-6 space-y-4">
-                <label className="block">
-                  <span className="text-sm font-medium">Group name</span>
-                  <input
-                    value={groupName}
-                    onChange={(event) => setGroupName(event.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary/40"
-                    placeholder="FSD Design Sprint"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-sm font-medium">Description</span>
-                  <textarea
-                    value={groupDescription}
-                    onChange={(event) => setGroupDescription(event.target.value)}
-                    className="mt-2 min-h-28 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary/40"
-                    placeholder="Describe what this group coordinates."
-                  />
-                </label>
-                <button type="button" onClick={handleCreateGroup} className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
-                  Create group
-                </button>
-              </div>
-            ) : null}
-
-            {panelMode === "join" ? (
-              <div className="mt-6 space-y-4">
-                <label className="block">
-                  <span className="text-sm font-medium">Invite code</span>
-                  <input
-                    value={inviteCode}
-                    onChange={(event) => setInviteCode(event.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary/40"
-                    placeholder="fsd-core-invite"
-                  />
-                </label>
-                <button type="button" onClick={handleJoinGroup} className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
-                  Join group
-                </button>
-              </div>
-            ) : null}
-
-            {panelMode === null ? (
-              <div className="mt-6 rounded-3xl border border-dashed border-border bg-muted/30 p-5 text-sm leading-6 text-muted-foreground">
-                Select an action above to get started.
-              </div>
-            ) : null}
-          </SectionCard>
+function GroupCard({ group }: { group: Group }) {
+  return (
+    <article className="flex flex-col rounded-[2rem] border border-border/70 bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+      <div className="p-6">
+        <div className={`mb-5 h-1.5 w-20 rounded-full bg-gradient-to-r ${group.accent}`} />
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-lg font-semibold tracking-tight">{group.name}</h3>
+            <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{group.description}</p>
+          </div>
+          <span
+            className={cn(
+              "shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold",
+              group.role === "Owner"
+                ? "bg-primary/10 text-primary"
+                : "bg-muted text-muted-foreground",
+            )}
+          >
+            {group.role}
+          </span>
+        </div>
+        <div className="mt-5 flex items-center justify-between text-sm text-muted-foreground">
+          <span>{group.members} members</span>
+          <span className="font-medium text-foreground">{group.nextWindow}</span>
         </div>
       </div>
-    </div>
+      <div className="mt-auto flex items-center justify-between border-t border-border/60 px-6 py-4">
+        <span className="text-xs text-muted-foreground">Calendar · Availability</span>
+        <Link
+          href={`/app/groups/${group.id}`}
+          className="rounded-full bg-primary/10 px-3.5 py-1.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/20"
+        >
+          Open →
+        </Link>
+      </div>
+    </article>
   );
 }

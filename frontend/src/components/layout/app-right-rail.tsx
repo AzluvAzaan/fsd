@@ -21,8 +21,8 @@ export function AppRightRail({ open, onClose }: AppRightRailProps) {
       className="hidden 2xl:flex"
     >
       <div className="flex h-full w-[22rem] flex-col border-l border-border/70 bg-card/30">
-        <div className="flex shrink-0 items-center justify-between px-6 pb-4 pt-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Today</p>
+        <div className="flex shrink-0 items-center justify-between px-6 pb-5 pt-7">
+          <p className="text-[0.65rem] font-bold uppercase tracking-[0.25em] text-muted-foreground/80">Today</p>
           <button
             type="button"
             onClick={onClose}
@@ -32,11 +32,11 @@ export function AppRightRail({ open, onClose }: AppRightRailProps) {
             <X className="size-3.5" />
           </button>
         </div>
-        <div className="flex-1 space-y-6 overflow-y-auto px-6 pb-6">
+        <div className="flex-1 space-y-8 overflow-y-auto px-6 pb-8">
           <section>
-            <div className="rounded-3xl border border-border/70 bg-card/90 p-5 shadow-sm">
+            <div className="rounded-3xl border border-border/60 bg-gradient-to-br from-card to-card/60 p-6 shadow-sm">
               <h3 className="text-2xl font-semibold tracking-tight">Thursday, Oct 15</h3>
-              <p className="mt-1 text-sm text-muted-foreground">Your day at a glance</p>
+              <p className="mt-1.5 text-sm text-muted-foreground">Your day at a glance</p>
             </div>
             <div className="mt-4 space-y-3">
               {todayAgenda.map((item) => (
@@ -51,7 +51,9 @@ export function AppRightRail({ open, onClose }: AppRightRailProps) {
           </section>
           <section>
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">Pending requests</h4>
+              <h4 className="text-[0.65rem] font-bold uppercase tracking-[0.22em] text-muted-foreground/70">
+                Pending requests
+              </h4>
               <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
                 {requests.filter((item) => item.status === "pending").length}
               </span>
@@ -70,7 +72,9 @@ export function AppRightRail({ open, onClose }: AppRightRailProps) {
             </div>
           </section>
           <section>
-            <h4 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">Latest updates</h4>
+            <h4 className="text-[0.65rem] font-bold uppercase tracking-[0.22em] text-muted-foreground/70">
+              Latest updates
+            </h4>
             <div className="mt-4 space-y-3">
               {notifications.slice(0, 2).map((item) => (
                 <div key={item.id} className="rounded-2xl border border-border/70 bg-card/90 p-4 shadow-sm">

@@ -53,6 +53,7 @@ func NewRouter(
 
 	// ---- Sync (UC10) ----
 	mux.HandleFunc("POST /sync/google", middleware.Auth(syncHandler.SyncGoogle))
+	mux.HandleFunc("POST /sync/apple", middleware.Auth(syncHandler.SyncApple))
 
 	// ---- Text Parser (UC12) ----
 	mux.HandleFunc("POST /events/parse-text", middleware.Auth(textParserHandler.ParseText))

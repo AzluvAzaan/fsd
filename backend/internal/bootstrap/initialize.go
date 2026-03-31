@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/fsd-group/fsd/internal/choreographer"
 	"github.com/fsd-group/fsd/internal/infrastructure/config"
 	"github.com/fsd-group/fsd/internal/infrastructure/google"
 	infrahttp "github.com/fsd-group/fsd/internal/infrastructure/http"
@@ -22,6 +23,7 @@ import (
 	"github.com/fsd-group/fsd/internal/usecase/telegram"
 	"github.com/fsd-group/fsd/internal/usecase/textparser"
 	useruc "github.com/fsd-group/fsd/internal/usecase/user"
+	"github.com/fsd-group/fsd/pkg/eventbus"
 )
 
 // App holds all initialized components of the application.
@@ -53,6 +55,13 @@ func Initialize(cfg *config.Config) (*App, error) {
 	eventRepo := persistence.NewEventPostgresRepo(db)
 	eventReqRepo := persistence.NewEventRequestPostgresRepo(db)
 	notifRepo := persistence.NewNotificationPostgresRepo(db)
+	calendarRepo := persistence.NewCalendarPostgresRepo(db)
+
+	// --- Choreographer (microservice choreography layer) ---
+	// The event bus decouples services: each service publishes domain events;
+	// the choreographer subscribes and triggers cross-service reactions.
+	bus := eventbus.New()
+	ch := choreographer.New(bus)
 
 	// --- Use cases ---
 	authService := auth.NewService(userRepo, googleClient)
@@ -61,7 +70,7 @@ func Initialize(cfg *config.Config) (*App, error) {
 	eventService := event.NewService(eventRepo)
 	eventReqService := eventrequest.NewService(eventReqRepo, eventRepo, notifRepo, googleClient)
 	notifService := notification.NewService(notifRepo)
-	syncService := synccal.NewService(eventRepo, googleClient)
+	syncService := synccal.NewService(eventRepo, calendarRepo, googleClient, nil) // apple connector: nil until configured
 	textParserService := textparser.NewService(eventRepo, llmClient)
 	userService := useruc.NewService(userRepo)
 	telegramService := telegram.NewService(eventRepo, textParserService, eventReqService)
@@ -73,7 +82,7 @@ func Initialize(cfg *config.Config) (*App, error) {
 	eventHandler := rest.NewEventHandler(eventService)
 	eventReqHandler := rest.NewEventRequestHandler(eventReqService)
 	notifHandler := rest.NewNotificationHandler(notifService)
-	syncHandler := rest.NewSyncHandler(syncService)
+	syncHandler := rest.NewSyncHandler(syncService, ch)
 	textParserHandler := rest.NewTextParserHandler(textParserService)
 	userHandler := rest.NewUserHandler(userService)
 

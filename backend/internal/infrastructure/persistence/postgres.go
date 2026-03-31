@@ -4,13 +4,24 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 // openDB opens a PostgreSQL connection pool.
+// default_query_exec_mode=simple_protocol disables pgx's per-connection prepared
+// statement cache, which causes "prepared statement already exists" errors when
+// multiple connections execute the same query concurrently.
 func openDB(databaseURL string) (*sql.DB, error) {
+	if !strings.Contains(databaseURL, "default_query_exec_mode") {
+		sep := "?"
+		if strings.Contains(databaseURL, "?") {
+			sep = "&"
+		}
+		databaseURL += sep + "default_query_exec_mode=simple_protocol"
+	}
 	db, err := sql.Open("pgx", databaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("open postgres: %w", err)

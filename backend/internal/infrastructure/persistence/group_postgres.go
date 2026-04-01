@@ -54,7 +54,7 @@ func (r *GroupPostgresRepo) ListByUser(ctx context.Context, userID string) ([]*g
 	rows, err := r.db.QueryContext(ctx,
 		`SELECT g.id, g.name, g.invite_link, g.created_by_id, g.created_at
 		 FROM groups g
-		 JOIN group_members gm ON gm.group_id = g.id
+		 INNER JOIN group_members gm ON g.id = gm.group_id
 		 WHERE gm.user_id = $1
 		 ORDER BY g.created_at DESC`, userID,
 	)
@@ -75,8 +75,18 @@ func (r *GroupPostgresRepo) ListByUser(ctx context.Context, userID string) ([]*g
 }
 
 func (r *GroupPostgresRepo) Delete(ctx context.Context, id string) error {
-	_, err := r.db.ExecContext(ctx, `DELETE FROM groups WHERE id = $1`, id)
-	return err
+	result, err := r.db.ExecContext(ctx, `DELETE FROM groups WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return fmt.Errorf("group not found: %s", id)
+	}
+	return nil
 }
 
 func (r *GroupPostgresRepo) AddMember(ctx context.Context, m *group.GroupMember) error {
@@ -91,16 +101,15 @@ func (r *GroupPostgresRepo) AddMember(ctx context.Context, m *group.GroupMember)
 
 func (r *GroupPostgresRepo) RemoveMember(ctx context.Context, groupID, userID string) error {
 	_, err := r.db.ExecContext(ctx,
-		`DELETE FROM group_members WHERE group_id = $1 AND user_id = $2`, groupID, userID,
+		`DELETE FROM group_members WHERE group_id = $1 AND user_id = $2`,
+		groupID, userID,
 	)
 	return err
 }
 
 func (r *GroupPostgresRepo) ListMembers(ctx context.Context, groupID string) ([]*group.GroupMember, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, group_id, user_id, joined_at
-		 FROM group_members WHERE group_id = $1
-		 ORDER BY joined_at`, groupID,
+		`SELECT id, group_id, user_id, joined_at FROM group_members WHERE group_id = $1 ORDER BY joined_at`, groupID,
 	)
 	if err != nil {
 		return nil, err

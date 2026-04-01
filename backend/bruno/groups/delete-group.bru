@@ -1,0 +1,16 @@
+meta {
+  name: Delete Group
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/groups/{{groupId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-User-ID: {{userId}}
+}
+

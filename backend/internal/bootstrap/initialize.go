@@ -65,7 +65,7 @@ func Initialize(cfg *config.Config) (*App, error) {
 
 	// --- Use cases ---
 	authService := auth.NewService(userRepo, googleClient)
-	groupService := group.NewService(groupRepo)
+	groupService := group.NewService(groupRepo, userRepo)
 	calendarService := calendar.NewService(eventRepo, groupRepo)
 	eventService := event.NewService(eventRepo)
 	eventReqService := eventrequest.NewService(eventReqRepo, eventRepo, notifRepo, googleClient)

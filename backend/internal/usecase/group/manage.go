@@ -2,22 +2,30 @@ package group
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 
 	domaingroup "github.com/fsd-group/fsd/internal/domain/group"
+	domainuser "github.com/fsd-group/fsd/internal/domain/user"
 )
+
+var ErrGroupOwnerNotFound = errors.New("group owner not found")
+var ErrGroupUserNotFound = errors.New("group user not found")
+var ErrGroupInviteCodeNotFound = errors.New("group invite code not found")
 
 // Service handles UC2: Create Group & invite via link.
 type Service struct {
 	groups domaingroup.Repository
+	users  domainuser.Repository
 }
 
 // NewService creates a new group service.
-func NewService(groups domaingroup.Repository) *Service {
-	return &Service{groups: groups}
+func NewService(groups domaingroup.Repository, users domainuser.Repository) *Service {
+	return &Service{groups: groups, users: users}
 }
 
 // CreateGroupInput carries data for creating a new group.
@@ -28,6 +36,10 @@ type CreateGroupInput struct {
 
 // CreateGroup creates a group and returns a shareable invite link (UC2).
 func (s *Service) CreateGroup(ctx context.Context, in CreateGroupInput) (*domaingroup.Group, error) {
+	if _, err := s.users.FindByID(ctx, in.OwnerID); err != nil {
+		return nil, fmt.Errorf("%w: %s", ErrGroupOwnerNotFound, in.OwnerID)
+	}
+
 	now := time.Now()
 
 	g := &domaingroup.Group{
@@ -58,8 +70,15 @@ func (s *Service) CreateGroup(ctx context.Context, in CreateGroupInput) (*domain
 
 // JoinByInvite adds a user to a group via invite code (UC2).
 func (s *Service) JoinByInvite(ctx context.Context, inviteCode, userID string) error {
+	if _, err := s.users.FindByID(ctx, userID); err != nil {
+		return fmt.Errorf("%w: %s", ErrGroupUserNotFound, userID)
+	}
+
 	g, err := s.groups.FindByInviteCode(ctx, inviteCode)
 	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return fmt.Errorf("%w: %s", ErrGroupInviteCodeNotFound, inviteCode)
+		}
 		return fmt.Errorf("find group by invite code: %w", err)
 	}
 

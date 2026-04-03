@@ -24,7 +24,5 @@ body:json {
 script:post-response {
   const body = res.getBody();
   bru.setVar("groupId", body.id);
-  bru.setVar("inviteCode", body.inviteLink);
+  bru.setVar("inviteCode", body.inviteCode);
 }
-
-

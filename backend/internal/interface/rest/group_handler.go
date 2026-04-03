@@ -2,6 +2,7 @@ package rest
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -50,6 +51,10 @@ func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request) {
 		OwnerID: userID,
 	})
 	if err != nil {
+		if errors.Is(err, group.ErrGroupOwnerNotFound) {
+			response.Error(w, http.StatusNotFound, "user not found, create user first")
+			return
+		}
 		response.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -73,6 +78,14 @@ func (h *GroupHandler) JoinGroup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.groupService.JoinByInvite(r.Context(), code, userID); err != nil {
+		if errors.Is(err, group.ErrGroupUserNotFound) {
+			response.Error(w, http.StatusNotFound, "user not found, create user first")
+			return
+		}
+		if errors.Is(err, group.ErrGroupInviteCodeNotFound) {
+			response.Error(w, http.StatusNotFound, "invite code not found")
+			return
+		}
 		response.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}

@@ -19,9 +19,9 @@ func NewGroupPostgresRepo(db *sql.DB) *GroupPostgresRepo {
 
 func (r *GroupPostgresRepo) Create(ctx context.Context, g *group.Group) error {
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO groups (id, name, invite_link, created_by_id, created_at)
+		`INSERT INTO groups (id, name, invite_code, created_by_id, created_at)
 		 VALUES ($1, $2, $3, $4, $5)`,
-		g.ID, g.Name, g.InviteLink, g.CreatedByID, g.CreatedAt,
+		g.ID, g.Name, g.InviteCode, g.CreatedByID, g.CreatedAt,
 	)
 	return err
 }
@@ -29,9 +29,9 @@ func (r *GroupPostgresRepo) Create(ctx context.Context, g *group.Group) error {
 func (r *GroupPostgresRepo) FindByID(ctx context.Context, id string) (*group.Group, error) {
 	g := &group.Group{}
 	err := r.db.QueryRowContext(ctx,
-		`SELECT id, name, invite_link, created_by_id, created_at
+		`SELECT id, name, invite_code, created_by_id, created_at
 		 FROM groups WHERE id = $1`, id,
-	).Scan(&g.ID, &g.Name, &g.InviteLink, &g.CreatedByID, &g.CreatedAt)
+	).Scan(&g.ID, &g.Name, &g.InviteCode, &g.CreatedByID, &g.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("group not found: %s", id)
 	}
@@ -41,9 +41,9 @@ func (r *GroupPostgresRepo) FindByID(ctx context.Context, id string) (*group.Gro
 func (r *GroupPostgresRepo) FindByInviteCode(ctx context.Context, code string) (*group.Group, error) {
 	g := &group.Group{}
 	err := r.db.QueryRowContext(ctx,
-		`SELECT id, name, invite_link, created_by_id, created_at
-		 FROM groups WHERE invite_link = $1`, code,
-	).Scan(&g.ID, &g.Name, &g.InviteLink, &g.CreatedByID, &g.CreatedAt)
+		`SELECT id, name, invite_code, created_by_id, created_at
+		 FROM groups WHERE invite_code = $1`, code,
+	).Scan(&g.ID, &g.Name, &g.InviteCode, &g.CreatedByID, &g.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("group not found for invite code: %s", code)
 	}
@@ -52,7 +52,7 @@ func (r *GroupPostgresRepo) FindByInviteCode(ctx context.Context, code string) (
 
 func (r *GroupPostgresRepo) ListByUser(ctx context.Context, userID string) ([]*group.Group, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT g.id, g.name, g.invite_link, g.created_by_id, g.created_at
+		`SELECT g.id, g.name, g.invite_code, g.created_by_id, g.created_at
 		 FROM groups g
 		 INNER JOIN group_members gm ON g.id = gm.group_id
 		 WHERE gm.user_id = $1
@@ -66,7 +66,7 @@ func (r *GroupPostgresRepo) ListByUser(ctx context.Context, userID string) ([]*g
 	var groups []*group.Group
 	for rows.Next() {
 		g := &group.Group{}
-		if err := rows.Scan(&g.ID, &g.Name, &g.InviteLink, &g.CreatedByID, &g.CreatedAt); err != nil {
+		if err := rows.Scan(&g.ID, &g.Name, &g.InviteCode, &g.CreatedByID, &g.CreatedAt); err != nil {
 			return nil, err
 		}
 		groups = append(groups, g)

@@ -45,7 +45,7 @@ func (s *Service) CreateGroup(ctx context.Context, in CreateGroupInput) (*domain
 	g := &domaingroup.Group{
 		ID:          uuid.New().String(),
 		Name:        in.Name,
-		InviteLink:  uuid.New().String(),
+		InviteCode:  uuid.New().String(),
 		CreatedByID: in.OwnerID,
 		CreatedAt:   now,
 	}

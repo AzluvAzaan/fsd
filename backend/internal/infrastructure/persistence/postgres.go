@@ -92,26 +92,6 @@ func migrate(ctx context.Context, db *sql.DB) error {
 		created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 	);
 
-	DO $$
-	BEGIN
-		IF EXISTS (
-			SELECT 1
-			FROM information_schema.columns
-			WHERE table_schema = 'public' AND table_name = 'groups' AND column_name = 'invite_link'
-		) AND NOT EXISTS (
-			SELECT 1
-			FROM information_schema.columns
-			WHERE table_schema = 'public' AND table_name = 'groups' AND column_name = 'invite_code'
-		) THEN
-			ALTER TABLE groups RENAME COLUMN invite_link TO invite_code;
-		END IF;
-	END $$;
-
-	-- Convert legacy URL-shaped values like https://fsd.app/join/alpha-2026 into alpha-2026.
-	UPDATE groups
-	SET invite_code = regexp_replace(invite_code, '^.*/', '')
-	WHERE position('/' in invite_code) > 0;
-
 	CREATE TABLE IF NOT EXISTS group_members (
 		id        TEXT        PRIMARY KEY,
 		group_id  TEXT        NOT NULL REFERENCES groups(id) ON DELETE CASCADE,

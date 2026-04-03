@@ -26,26 +26,6 @@ CREATE TABLE IF NOT EXISTS groups (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-DO $$
-BEGIN
-    IF EXISTS (
-        SELECT 1
-        FROM information_schema.columns
-        WHERE table_schema = 'public' AND table_name = 'groups' AND column_name = 'invite_link'
-    ) AND NOT EXISTS (
-        SELECT 1
-        FROM information_schema.columns
-        WHERE table_schema = 'public' AND table_name = 'groups' AND column_name = 'invite_code'
-    ) THEN
-        ALTER TABLE groups RENAME COLUMN invite_link TO invite_code;
-    END IF;
-END $$;
-
--- Normalize legacy URL-shaped invite values to raw codes.
-UPDATE groups
-SET invite_code = regexp_replace(invite_code, '^.*/', '')
-WHERE position('/' in invite_code) > 0;
-
 -- ============================================================
 -- 3. group_members  (junction table)
 -- ============================================================
@@ -125,4 +105,3 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 COMMIT;
-

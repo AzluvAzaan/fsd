@@ -87,7 +87,7 @@ func migrate(ctx context.Context, db *sql.DB) error {
 	CREATE TABLE IF NOT EXISTS groups (
 		id            TEXT        PRIMARY KEY,
 		name          TEXT        NOT NULL,
-		invite_link   TEXT        UNIQUE NOT NULL,
+		invite_code   TEXT        UNIQUE NOT NULL,
 		created_by_id TEXT        NOT NULL REFERENCES users(id),
 		created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 	);

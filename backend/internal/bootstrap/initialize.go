@@ -67,11 +67,11 @@ func Initialize(cfg *config.Config) (*App, error) {
 	authService := auth.NewService(userRepo, googleClient)
 	groupService := group.NewService(groupRepo, userRepo)
 	calendarService := calendar.NewService(eventRepo, groupRepo)
-	eventService := event.NewService(eventRepo)
+	eventService := event.NewService(eventRepo, calendarRepo)
 	eventReqService := eventrequest.NewService(eventReqRepo, eventRepo, notifRepo, googleClient)
 	notifService := notification.NewService(notifRepo)
 	syncService := synccal.NewService(eventRepo, calendarRepo, googleClient, nil) // apple connector: nil until configured
-	textParserService := textparser.NewService(eventRepo, llmClient)
+	textParserService := textparser.NewService(eventRepo, llmClient, calendarRepo)
 	userService := useruc.NewService(userRepo)
 	telegramService := telegram.NewService(eventRepo, textParserService, eventReqService)
 
@@ -87,7 +87,7 @@ func Initialize(cfg *config.Config) (*App, error) {
 	userHandler := rest.NewUserHandler(userService)
 
 	// --- Interface: Telegram bot handler ---
-	telegramBot := tginterface.NewBotHandler(telegramService)
+	telegramBot := tginterface.NewBotHandler(telegramService, cfg.TelegramBotToken)
 
 	// --- HTTP router ---
 	router := infrahttp.NewRouter(
@@ -100,6 +100,7 @@ func Initialize(cfg *config.Config) (*App, error) {
 		syncHandler,
 		textParserHandler,
 		userHandler,
+		telegramBot,
 	)
 
 	log.Info("All dependencies initialized successfully")

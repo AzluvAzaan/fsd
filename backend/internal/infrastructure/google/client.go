@@ -1,8 +1,14 @@
 package google
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"strings"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -87,9 +93,48 @@ func (c *Client) FetchEvents(_ context.Context, userID string, from, to time.Tim
 // --- eventrequest.NotificationSender (Gmail) ---
 
 // SendEmail sends an email notification via Gmail API.
-func (c *Client) SendEmail(_ context.Context, recipientEmail, subject, body string) error {
-	// TODO: implement with Gmail API
-	_, _, _ = recipientEmail, subject, body
+// senderToken is the OAuth2 access token for the sending user (gmail.send scope).
+func (c *Client) SendEmail(ctx context.Context, senderToken, recipientEmail, subject, body string) error {
+	if strings.TrimSpace(senderToken) == "" {
+		return fmt.Errorf("gmail access token is required")
+	}
+	if strings.TrimSpace(recipientEmail) == "" {
+		return fmt.Errorf("recipient email is required")
+	}
+
+	rfc2822 := fmt.Sprintf(
+		"To: %s\r\nSubject: %s\r\nContent-Type: text/plain; charset=\"UTF-8\"\r\nMIME-Version: 1.0\r\n\r\n%s",
+		recipientEmail, subject, body,
+	)
+	raw := base64.RawURLEncoding.EncodeToString([]byte(rfc2822))
+
+	reqBody, err := json.Marshal(map[string]string{"raw": raw})
+	if err != nil {
+		return fmt.Errorf("marshal gmail send request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+		"https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+		bytes.NewReader(reqBody))
+	if err != nil {
+		return fmt.Errorf("create gmail send http request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+senderToken)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("gmail send http request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("read gmail send response: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("gmail send: status %d: %s", resp.StatusCode, string(respBytes))
+	}
 	return nil
 }
 

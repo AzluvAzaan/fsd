@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/fsd-group/fsd/internal/interface/rest"
+	tginterface "github.com/fsd-group/fsd/internal/interface/telegram"
 	"github.com/fsd-group/fsd/pkg/middleware"
 )
 
@@ -18,6 +19,7 @@ func NewRouter(
 	syncHandler *rest.SyncHandler,
 	textParserHandler *rest.TextParserHandler,
 	userHandler *rest.UserHandler,
+	telegramBot *tginterface.BotHandler,
 ) http.Handler {
 	mux := http.NewServeMux()
 
@@ -64,6 +66,9 @@ func NewRouter(
 	mux.HandleFunc("GET /users", userHandler.FindByEmail)
 	mux.HandleFunc("PUT /users", userHandler.Upsert)
 	mux.HandleFunc("DELETE /users/{userId}", userHandler.Delete)
+
+	// ---- Telegram (UC11) ----
+	mux.HandleFunc("POST /telegram/webhook", telegramBot.ServeWebhook)
 
 	// Apply global middleware
 	handler := middleware.CORS(

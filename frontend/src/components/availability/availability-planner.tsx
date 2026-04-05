@@ -16,18 +16,27 @@ const durations = ["30 min", "60 min", "90 min"] as const;
 const ranges = ["This week", "Next 7 days", "Next 2 weeks"] as const;
 
 export function AvailabilityPlanner({ groupName }: AvailabilityPlannerProps) {
-  const [selectedRange, setSelectedRange] = useState<(typeof ranges)[number]>("This week");
-  const [selectedDuration, setSelectedDuration] = useState<(typeof durations)[number]>("60 min");
+  const [selectedRange, setSelectedRange] =
+    useState<(typeof ranges)[number]>("This week");
+  const [selectedDuration, setSelectedDuration] =
+    useState<(typeof durations)[number]>("60 min");
   const [minimumParticipants, setMinimumParticipants] = useState(3);
-  const [selectedSlotId, setSelectedSlotId] = useState(availabilitySlots[0]?.id ?? "");
+  const [selectedSlotId, setSelectedSlotId] = useState(
+    availabilitySlots[0]?.id ?? "",
+  );
   const [requestDrafted, setRequestDrafted] = useState(false);
 
   const filteredSlots = useMemo(
-    () => availabilitySlots.filter((slot) => slot.participants.length >= minimumParticipants),
+    () =>
+      availabilitySlots.filter(
+        (slot) => slot.participants.length >= minimumParticipants,
+      ),
     [minimumParticipants],
   );
 
-  const selectedSlot = filteredSlots.find((slot) => slot.id === selectedSlotId) ?? filteredSlots[0];
+  const selectedSlot =
+    filteredSlots.find((slot) => slot.id === selectedSlotId) ??
+    filteredSlots[0];
 
   return (
     <div className="space-y-6">
@@ -49,7 +58,9 @@ export function AvailabilityPlanner({ groupName }: AvailabilityPlannerProps) {
                   onClick={() => setSelectedRange(range)}
                   className={cn(
                     "rounded-full border px-4 py-2 text-sm font-medium",
-                    selectedRange === range ? "border-primary/30 bg-primary/10 text-primary" : "border-border bg-background hover:bg-muted",
+                    selectedRange === range
+                      ? "border-primary/30 bg-primary/10 text-primary"
+                      : "border-border bg-background hover:bg-muted",
                   )}
                 >
                   {range}
@@ -58,7 +69,9 @@ export function AvailabilityPlanner({ groupName }: AvailabilityPlannerProps) {
             </div>
           </div>
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Duration</p>
+            <p className="text-sm font-medium text-muted-foreground">
+              Duration
+            </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {durations.map((duration) => (
                 <button
@@ -67,7 +80,9 @@ export function AvailabilityPlanner({ groupName }: AvailabilityPlannerProps) {
                   onClick={() => setSelectedDuration(duration)}
                   className={cn(
                     "rounded-full border px-4 py-2 text-sm font-medium",
-                    selectedDuration === duration ? "border-primary/30 bg-primary/10 text-primary" : "border-border bg-background hover:bg-muted",
+                    selectedDuration === duration
+                      ? "border-primary/30 bg-primary/10 text-primary"
+                      : "border-border bg-background hover:bg-muted",
                   )}
                 >
                   {duration}
@@ -77,17 +92,23 @@ export function AvailabilityPlanner({ groupName }: AvailabilityPlannerProps) {
           </div>
           <div>
             <label className="block">
-              <span className="text-sm font-medium text-muted-foreground">Minimum participants</span>
+              <span className="text-sm font-medium text-muted-foreground">
+                Minimum participants
+              </span>
               <input
                 type="range"
                 min={2}
                 max={5}
                 value={minimumParticipants}
-                onChange={(event) => setMinimumParticipants(Number(event.target.value))}
+                onChange={(event) =>
+                  setMinimumParticipants(Number(event.target.value))
+                }
                 className="mt-4 w-full accent-[var(--primary)]"
               />
             </label>
-            <p className="mt-2 text-sm font-semibold">{minimumParticipants}+ people available</p>
+            <p className="mt-2 text-sm font-semibold">
+              {minimumParticipants}+ people available
+            </p>
           </div>
         </div>
       </SectionCard>
@@ -96,28 +117,45 @@ export function AvailabilityPlanner({ groupName }: AvailabilityPlannerProps) {
         <div className="space-y-6">
           <div className="grid gap-4 lg:grid-cols-3">
             <SectionCard className="p-5">
-              <p className="text-sm font-medium text-muted-foreground">Selected range</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Selected range
+              </p>
               <p className="mt-3 text-xl font-semibold">{selectedRange}</p>
             </SectionCard>
             <SectionCard className="p-5">
-              <p className="text-sm font-medium text-muted-foreground">Meeting length</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Meeting length
+              </p>
               <p className="mt-3 text-xl font-semibold">{selectedDuration}</p>
             </SectionCard>
             <SectionCard className="p-5">
-              <p className="text-sm font-medium text-muted-foreground">Candidate slots</p>
-              <p className="mt-3 text-xl font-semibold">{filteredSlots.length}</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Candidate slots
+              </p>
+              <p className="mt-3 text-xl font-semibold">
+                {filteredSlots.length}
+              </p>
             </SectionCard>
           </div>
 
-          <SlotList items={filteredSlots} selectedSlotId={selectedSlot?.id} onSelect={(slotId) => {
-            setSelectedSlotId(slotId);
-            setRequestDrafted(false);
-          }} actionLabel="Inspect slot" />
+          <SlotList
+            items={filteredSlots}
+            selectedSlotId={selectedSlot?.id}
+            onSelect={(slotId) => {
+              setSelectedSlotId(slotId);
+              setRequestDrafted(false);
+            }}
+            actionLabel="Inspect slot"
+          />
         </div>
 
         <SectionCard>
-          <p className="text-sm font-medium text-muted-foreground">Selected result</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight">{selectedSlot?.date ?? "No slot available"}</h2>
+          <p className="text-sm font-medium text-muted-foreground">
+            Selected result
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+            {selectedSlot?.date ?? "No slot available"}
+          </h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
             {selectedSlot
               ? "Review the candidate window here and draft a request from the same page."
@@ -127,16 +165,28 @@ export function AvailabilityPlanner({ groupName }: AvailabilityPlannerProps) {
           {selectedSlot ? (
             <div className="mt-6 space-y-4">
               <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
-                <p className="text-sm font-medium text-muted-foreground">Time</p>
-                <p className="mt-2 text-lg font-semibold">{selectedSlot.time}</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Time
+                </p>
+                <p className="mt-2 text-lg font-semibold">
+                  {selectedSlot.time}
+                </p>
               </div>
               <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
-                <p className="text-sm font-medium text-muted-foreground">Participants</p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{selectedSlot.participants.join(", ")}</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Participants
+                </p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  {selectedSlot.participants.join(", ")}
+                </p>
               </div>
               <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
-                <p className="text-sm font-medium text-muted-foreground">Planner note</p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{selectedSlot.note}</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Planner note
+                </p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  {selectedSlot.note}
+                </p>
               </div>
 
               <button
@@ -144,15 +194,60 @@ export function AvailabilityPlanner({ groupName }: AvailabilityPlannerProps) {
                 onClick={() => setRequestDrafted(true)}
                 className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
               >
-                Draft request
+                Create request
               </button>
 
               {requestDrafted ? (
-                <div className="rounded-3xl bg-primary/8 p-4">
-                  <p className="text-sm font-semibold text-primary">Draft ready</p>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    Draft ready for {selectedSlot.date} at {selectedSlot.time}. Review the details and send when you're ready.
-                  </p>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+                  {/* backdrop */}
+                  <div
+                    className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                    onClick={() => setRequestDrafted(false)}
+                  />
+
+                  {/* modal */}
+                  <div className="relative w-full max-w-2xl rounded-xl bg-white shadow-2xl overflow-hidden">
+                    {/* header */}
+                    <div className="flex items-center justify-between p-6 border-b">
+                      <h2 className="text-xl font-semibold">Create Request</h2>
+                      <button onClick={() => setRequestDrafted(false)}>
+                        ✕
+                      </button>
+                    </div>
+
+                    {/* body */}
+                    <div className="p-6 space-y-4">
+                      <input
+                        placeholder="Event name"
+                        className="w-full border rounded-lg p-3"
+                      />
+                      <input
+                        placeholder="Location"
+                        className="w-full border rounded-lg p-3"
+                      />
+                      <select className="w-full border rounded-lg p-3">
+                        <option>As soon as possible</option>
+                        <option>This week</option>
+                        <option>Next week</option>
+                      </select>
+                    </div>
+
+                    {/* footer */}
+                    <div className="flex justify-end gap-3 p-6 border-t">
+                      <button
+                        onClick={() => setRequestDrafted(false)}
+                        className="px-4 py-2 rounded-full border"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => setRequestDrafted(false)}
+                        className="px-4 py-2 rounded-full bg-primary text-white"
+                      >
+                        Create
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ) : null}
             </div>

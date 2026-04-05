@@ -31,6 +31,7 @@ func NewRouter(
 	mux.HandleFunc("POST /groups/join", middleware.Auth(groupHandler.JoinGroup))
 	mux.HandleFunc("GET /groups", middleware.Auth(groupHandler.ListGroups))
 	mux.HandleFunc("GET /groups/{groupId}/members", middleware.Auth(groupHandler.ListMembers))
+	mux.HandleFunc("DELETE /groups/{groupId}", middleware.Auth(groupHandler.DeleteGroup))
 
 	// ---- Calendar (UC3, UC4, UC5) ----
 	mux.HandleFunc("GET /calendar", middleware.Auth(calendarHandler.PersonalView))
@@ -53,6 +54,7 @@ func NewRouter(
 
 	// ---- Sync (UC10) ----
 	mux.HandleFunc("POST /sync/google", middleware.Auth(syncHandler.SyncGoogle))
+	mux.HandleFunc("POST /sync/apple", middleware.Auth(syncHandler.SyncApple))
 
 	// ---- Text Parser (UC12) ----
 	mux.HandleFunc("POST /events/parse-text", middleware.Auth(textParserHandler.ParseText))

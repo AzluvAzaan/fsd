@@ -6,7 +6,7 @@ import "time"
 type Group struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`
-	InviteLink  string    `json:"inviteLink"`  // Unique shareable invite link
+	InviteCode  string    `json:"inviteCode"`  // Unique shareable invite code
 	CreatedByID string    `json:"createdById"` // The user who created the group
 	CreatedAt   time.Time `json:"createdAt"`
 }

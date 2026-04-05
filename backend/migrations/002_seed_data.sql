@@ -19,11 +19,11 @@ ON CONFLICT (id) DO NOTHING;
 -- ============================================================
 -- Groups
 -- ============================================================
-INSERT INTO groups (id, name, invite_link, created_by_id)
+INSERT INTO groups (id, name, invite_code, created_by_id)
 VALUES
-    ('grp-001', 'Project Alpha Team',  'https://fsd.app/join/alpha-2026',  'usr-001'),
-    ('grp-002', 'Study Group',         'https://fsd.app/join/study-2026',  'usr-002'),
-    ('grp-003', 'Weekend Planners',    'https://fsd.app/join/wknd-2026',   'usr-004')
+    ('grp-001', 'Project Alpha Team',  'alpha-2026',  'usr-001'),
+    ('grp-002', 'Study Group',         'study-2026',  'usr-002'),
+    ('grp-003', 'Weekend Planners',    'wknd-2026',   'usr-004')
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================

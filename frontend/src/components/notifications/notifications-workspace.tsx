@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { CheckCheck, ChevronDown } from "lucide-react";
 
-import { NotificationList } from "@/components/notifications/notification-list";
 import { PageHeader } from "@/components/shared/page-header";
-import { SectionCard } from "@/components/shared/section-card";
 import { notifications, type NotificationItem } from "@/lib/constants/mock-data";
 import { cn } from "@/lib/utils";
 
@@ -13,24 +12,35 @@ type Filter = "all" | "unread";
 export function NotificationsWorkspace() {
   const [items, setItems] = useState<NotificationItem[]>(notifications);
   const [filter, setFilter] = useState<Filter>("all");
-  const [selectedNotificationId, setSelectedNotificationId] = useState(items[0]?.id ?? "");
+  const [expandedId, setExpandedId] = useState<string | null>(items[0]?.id ?? null);
 
   const filteredItems = items.filter((item) => filter === "all" || item.unread);
-  const selectedNotification = filteredItems.find((item) => item.id === selectedNotificationId) ?? filteredItems[0];
   const unreadCount = items.filter((item) => item.unread).length;
 
-  const markRead = (notificationId: string) => {
-    setItems((current) => current.map((item) => (item.id === notificationId ? { ...item, unread: false } : item)));
+  const markRead = (id: string) => {
+    setItems((current) => current.map((item) => (item.id === id ? { ...item, unread: false } : item)));
+  };
+
+  const markAllRead = () => {
+    setItems((current) => current.map((item) => ({ ...item, unread: false })));
+  };
+
+  const toggleExpand = (id: string) => {
+    setExpandedId((prev) => (prev === id ? null : id));
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <PageHeader
         eyebrow="Inbox"
-        title="Notifications"
-        description="Stay updated on group activity, invites, and scheduling changes. Filter by read state and mark items as read."
+        title={
+          unreadCount > 0
+            ? `Notifications · ${unreadCount} unread`
+            : "Notifications"
+        }
+        description="Stay updated on group activity, invites, and scheduling changes."
         actions={
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
             <div className="flex items-center rounded-full border border-border bg-card p-1">
               {(["all", "unread"] as const).map((value) => (
                 <button
@@ -38,69 +48,112 @@ export function NotificationsWorkspace() {
                   type="button"
                   onClick={() => setFilter(value)}
                   className={cn(
-                    "rounded-full px-4 py-2 text-sm font-medium capitalize",
-                    filter === value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                    "rounded-full px-4 py-1.5 text-sm font-medium capitalize transition-colors",
+                    filter === value
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   {value}
                 </button>
               ))}
             </div>
-            <button
-              type="button"
-              onClick={() => setItems((current) => current.map((item) => ({ ...item, unread: false })))}
-              className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted"
-            >
-              Mark all read
-            </button>
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={markAllRead}
+                className="flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted"
+              >
+                <CheckCheck className="size-3.5" />
+                Mark all read
+              </button>
+            )}
           </div>
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <SectionCard className="p-5">
-          <p className="text-sm font-medium text-muted-foreground">Unread</p>
-          <p className="mt-3 text-3xl font-semibold">{unreadCount}</p>
-        </SectionCard>
-        <SectionCard className="p-5">
-          <p className="text-sm font-medium text-muted-foreground">Visible items</p>
-          <p className="mt-3 text-3xl font-semibold">{filteredItems.length}</p>
-        </SectionCard>
-        <SectionCard className="p-5">
-          <p className="text-sm font-medium text-muted-foreground">Selected context</p>
-          <p className="mt-3 text-base font-semibold">{selectedNotification?.title ?? "None selected"}</p>
-        </SectionCard>
-      </div>
+      {filteredItems.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-border bg-card/50 py-24 text-center">
+          <p className="text-lg font-semibold">All caught up</p>
+          <p className="mt-2 text-sm text-muted-foreground">No {filter === "unread" ? "unread " : ""}notifications right now.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filteredItems.map((item) => (
+            <NotificationRow
+              key={item.id}
+              item={item}
+              expanded={expandedId === item.id}
+              onToggle={() => toggleExpand(item.id)}
+              onMarkRead={() => markRead(item.id)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
-      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <NotificationList
-          items={filteredItems}
-          selectedNotificationId={selectedNotification?.id}
-          onSelect={setSelectedNotificationId}
-          onMarkRead={markRead}
+function NotificationRow({
+  item,
+  expanded,
+  onToggle,
+  onMarkRead,
+}: {
+  item: NotificationItem;
+  expanded: boolean;
+  onToggle: () => void;
+  onMarkRead: () => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-[1.5rem] border border-border/70 bg-card shadow-sm transition-shadow",
+        expanded && "shadow-md",
+        item.unread && "border-primary/20 bg-primary/[0.02]",
+      )}
+    >
+      {/* Row header — always visible */}
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center gap-4 px-6 py-4 text-left"
+      >
+        <div className="flex-1 min-w-0 flex items-center gap-3">
+          {item.unread ? (
+            <span className="size-2 shrink-0 rounded-full bg-primary" />
+          ) : (
+            <span className="size-2 shrink-0" />
+          )}
+          <div className="min-w-0">
+            <p className={cn("text-sm font-medium", item.unread ? "text-foreground" : "text-muted-foreground")}>
+              {item.title}
+            </p>
+          </div>
+        </div>
+        <span className="shrink-0 text-xs text-muted-foreground">{item.time}</span>
+        <ChevronDown
+          className={cn("size-4 shrink-0 text-muted-foreground transition-transform", expanded && "rotate-180")}
         />
+      </button>
 
-        <SectionCard>
-          <p className="text-sm font-medium text-muted-foreground">Notification detail</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight">{selectedNotification?.title}</h2>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            {selectedNotification?.body ?? "Select a notification to view more context."}
-          </p>
-
-          {selectedNotification ? (
-            <div className="mt-6 space-y-4">
-              <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
-                <p className="text-sm font-medium text-muted-foreground">Timestamp</p>
-                <p className="mt-2 text-lg font-semibold">{selectedNotification.time}</p>
-              </div>
-              <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
-                <p className="text-sm font-medium text-muted-foreground">Read state</p>
-                <p className="mt-2 text-lg font-semibold">{selectedNotification.unread ? "Unread" : "Read"}</p>
-              </div>
+      {/* Expanded body */}
+      {expanded && (
+        <div className="border-t border-border/60 px-6 py-4">
+          <p className="text-sm leading-6 text-muted-foreground">{item.body}</p>
+          {item.unread && (
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={onMarkRead}
+                className="rounded-full bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                Mark as read
+              </button>
             </div>
-          ) : null}
-        </SectionCard>
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

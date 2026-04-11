@@ -3,15 +3,15 @@ package rest
 import (
 	"net/http"
 
-	syncsvc "github.com/fsd-group/fsd/internal/usecase/sync"
 	"github.com/fsd-group/fsd/internal/choreographer"
+	syncsvc "github.com/fsd-group/fsd/internal/usecase/sync"
 	"github.com/fsd-group/fsd/pkg/middleware"
 	"github.com/fsd-group/fsd/pkg/response"
 )
 
 // SyncHandler handles HTTP requests for UC10: Sync External Calendars.
 type SyncHandler struct {
-	syncService  *syncsvc.Service
+	syncService   *syncsvc.Service
 	choreographer *choreographer.Choreographer
 }
 

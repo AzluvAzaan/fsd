@@ -90,6 +90,17 @@ func (r *EventRequestPostgresRepo) Respond(ctx context.Context, resp *event.Even
 	return nil
 }
 
+func (r *EventRequestPostgresRepo) UpdateStatus(ctx context.Context, requestID string, status string) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE event_requests SET status = $1 WHERE id = $2`,
+		status, requestID,
+	)
+	if err != nil {
+		return fmt.Errorf("update event request status: %w", err)
+	}
+	return nil
+}
+
 func (r *EventRequestPostgresRepo) ListResponses(ctx context.Context, requestID string) ([]*event.EventResponse, error) {
 	rows, err := r.db.QueryContext(ctx,
 		`SELECT id, request_id, user_id, response, responded_at

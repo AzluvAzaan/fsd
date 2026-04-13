@@ -138,6 +138,16 @@ func (s *Service) Respond(ctx context.Context, in RespondInput) error {
 		return fmt.Errorf("record event response: %w", err)
 	}
 
+	// Update the overall request status to reflect this recipient's decision.
+	// "accepted" → confirmed; "rejected" → rejected.
+	newStatus := "accepted"
+	if in.Decision == "rejected" {
+		newStatus = "rejected"
+	}
+	if err := s.requests.UpdateStatus(ctx, in.RequestID, newStatus); err != nil {
+		return fmt.Errorf("update request status: %w", err)
+	}
+
 	req, err := s.requests.FindRequestByID(ctx, in.RequestID)
 	if err != nil {
 		return fmt.Errorf("find event request: %w", err)

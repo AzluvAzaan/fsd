@@ -20,6 +20,7 @@ func NewRouter(
 	textParserHandler *rest.TextParserHandler,
 	userHandler *rest.UserHandler,
 	telegramBot *tginterface.BotHandler,
+	docsHandler *rest.DocsHandler,
 ) http.Handler {
 	mux := http.NewServeMux()
 
@@ -69,6 +70,10 @@ func NewRouter(
 
 	// ---- Telegram (UC11) ----
 	mux.HandleFunc("POST /telegram/webhook", telegramBot.ServeWebhook)
+
+	// ---- API Docs (no auth) ----
+	mux.HandleFunc("GET /docs", docsHandler.ServeUI)
+	mux.HandleFunc("GET /docs/openapi.json", docsHandler.ServeSpec)
 
 	// Apply global middleware
 	handler := middleware.CORS(

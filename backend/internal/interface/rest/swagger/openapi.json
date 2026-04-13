@@ -1,0 +1,875 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "FSD — Free Slot Detector API",
+    "version": "1.0.0",
+    "description": "Group Calendar Coordination System. Supports UC1–UC12.\n\n## Authentication (Dev Mode)\n\nAll protected endpoints require the `X-User-ID` header. In production this will be replaced by a session cookie from Google OAuth.\n\n```\nX-User-ID: usr-001\n```\n\nSeeded user IDs: `usr-001` through `usr-005`.\n\n## Response Envelope\n\nAll responses follow a consistent envelope:\n\n```json\n{ \"data\": <payload>, \"error\": null }\n{ \"data\": null, \"error\": \"<message>\" }\n```"
+  },
+  "servers": [
+    { "url": "http://localhost:8080", "description": "Local dev server" }
+  ],
+  "tags": [
+    { "name": "Auth",           "description": "UC1 — Google OAuth login / logout" },
+    { "name": "Users",          "description": "User profile management" },
+    { "name": "Groups",         "description": "UC2 — Create groups and invite members" },
+    { "name": "Calendar",       "description": "UC3/UC4 — Personal and group calendar views" },
+    { "name": "Availability",   "description": "UC5 — Find shared free windows" },
+    { "name": "Events",         "description": "UC6 — Manual event creation and management" },
+    { "name": "EventRequests",  "description": "UC7/UC8 — Send and respond to meeting requests" },
+    { "name": "Notifications",  "description": "UC9 — In-app notifications" },
+    { "name": "Sync",           "description": "UC10 — Sync external calendars" },
+    { "name": "Telegram",       "description": "UC11 — Telegram bot webhook" },
+    { "name": "TextParser",     "description": "UC12 — Parse natural-language event descriptions" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "DevUserID": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-User-ID",
+        "description": "Dev-mode auth. Pass any seeded user ID (usr-001 … usr-005)."
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "data":  { "nullable": true, "example": null },
+          "error": { "type": "string", "example": "unauthorized" }
+        }
+      },
+      "MessageResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "message": { "type": "string" }
+            }
+          },
+          "error": { "nullable": true, "example": null }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id":             { "type": "string", "example": "usr-001" },
+          "email":         { "type": "string", "example": "alice@example.com" },
+          "displayName":   { "type": "string", "example": "Alice" },
+          "gmailToken":    { "type": "string", "example": "" },
+          "telegramChatId":{ "type": "string", "example": "" },
+          "createdAt":     { "type": "string", "format": "date-time" }
+        }
+      },
+      "Group": {
+        "type": "object",
+        "properties": {
+          "id":          { "type": "string", "example": "grp-abc123" },
+          "name":        { "type": "string", "example": "Study Group" },
+          "inviteCode":  { "type": "string", "example": "INVITE123" },
+          "createdById": { "type": "string", "example": "usr-001" },
+          "createdAt":   { "type": "string", "format": "date-time" }
+        }
+      },
+      "GroupMember": {
+        "type": "object",
+        "properties": {
+          "userId":   { "type": "string", "example": "usr-002" },
+          "groupId":  { "type": "string", "example": "grp-abc123" },
+          "role":     { "type": "string", "enum": ["owner", "member"], "example": "member" },
+          "joinedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Event": {
+        "type": "object",
+        "properties": {
+          "id":         { "type": "string", "example": "evt-001" },
+          "title":      { "type": "string", "example": "Team Standup" },
+          "type":       { "type": "string", "example": "meeting" },
+          "startTime":  { "type": "string", "format": "date-time", "example": "2026-04-14T09:00:00Z" },
+          "endTime":    { "type": "string", "format": "date-time", "example": "2026-04-14T10:00:00Z" },
+          "status":     { "type": "string", "enum": ["confirmed", "tentative", "cancelled"], "example": "confirmed" },
+          "calendarId": { "type": "string", "example": "cal-001" },
+          "groupId":    { "type": "string", "example": "grp-abc123" },
+          "createdAt":  { "type": "string", "format": "date-time" }
+        }
+      },
+      "CalendarView": {
+        "type": "object",
+        "description": "Returned by GET /calendar and GET /groups/{groupId}/calendar",
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Event" }
+          },
+          "from": { "type": "string", "format": "date-time" },
+          "to":   { "type": "string", "format": "date-time" }
+        }
+      },
+      "FreeSlot": {
+        "type": "object",
+        "properties": {
+          "start": { "type": "string", "format": "date-time", "example": "2026-04-14T10:00:00Z" },
+          "end":   { "type": "string", "format": "date-time", "example": "2026-04-14T11:00:00Z" }
+        }
+      },
+      "AvailabilityResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "freeSlots": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/FreeSlot" }
+              }
+            }
+          },
+          "error": { "nullable": true, "example": null }
+        }
+      },
+      "EventRequest": {
+        "type": "object",
+        "properties": {
+          "id":           { "type": "string", "example": "req-001" },
+          "senderId":     { "type": "string", "example": "usr-001" },
+          "groupId":      { "type": "string", "example": "grp-abc123" },
+          "eventId":      { "type": "string", "example": "evt-001" },
+          "title":        { "type": "string", "example": "Team lunch?" },
+          "eventType":    { "type": "string", "example": "social" },
+          "status":       { "type": "string", "enum": ["pending", "accepted", "rejected"], "example": "pending" },
+          "createdAt":    { "type": "string", "format": "date-time" }
+        }
+      },
+      "Notification": {
+        "type": "object",
+        "properties": {
+          "id":        { "type": "string", "example": "notif-001" },
+          "userId":    { "type": "string", "example": "usr-002" },
+          "type":      { "type": "string", "example": "event_request" },
+          "message":   { "type": "string", "example": "Alice invited you to Team lunch" },
+          "read":      { "type": "boolean", "example": false },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/auth/google/login": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Redirect to Google OAuth consent screen",
+        "description": "Initiates the Google OAuth2 flow. The browser is redirected to Google's consent page.",
+        "operationId": "googleLogin",
+        "responses": {
+          "302": { "description": "Redirect to Google" }
+        }
+      }
+    },
+    "/auth/google/callback": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "OAuth2 callback — exchanges code for tokens",
+        "description": "Google redirects here after the user grants access. The backend exchanges the code, upserts the user, and sets a session.",
+        "operationId": "googleCallback",
+        "parameters": [
+          { "name": "code",  "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "state", "in": "query", "required": false, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "302": { "description": "Redirect to frontend dashboard" },
+          "400": { "description": "Missing or invalid code" }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Log out the current user",
+        "operationId": "logout",
+        "security": [{ "DevUserID": [] }],
+        "responses": {
+          "200": { "description": "Logged out" }
+        }
+      }
+    },
+    "/users/{userId}": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get a user by ID",
+        "operationId": "getUserById",
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" }, "example": "usr-001" }
+        ],
+        "responses": {
+          "200": {
+            "description": "User found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data":  { "$ref": "#/components/schemas/User" },
+                    "error": { "nullable": true, "example": null }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "User not found" }
+        }
+      },
+      "delete": {
+        "tags": ["Users"],
+        "summary": "Delete a user by ID",
+        "operationId": "deleteUser",
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" }, "example": "usr-001" }
+        ],
+        "responses": {
+          "204": { "description": "User deleted" },
+          "500": { "description": "Server error" }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Look up a user by email",
+        "operationId": "getUserByEmail",
+        "parameters": [
+          { "name": "email", "in": "query", "required": true, "schema": { "type": "string" }, "example": "alice@example.com" }
+        ],
+        "responses": {
+          "200": {
+            "description": "User found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data":  { "$ref": "#/components/schemas/User" },
+                    "error": { "nullable": true, "example": null }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "email query param missing" },
+          "404": { "description": "User not found" }
+        }
+      },
+      "put": {
+        "tags": ["Users"],
+        "summary": "Create or update a user",
+        "description": "Idempotent upsert. Use this to create a user before testing any authenticated endpoint.",
+        "operationId": "upsertUser",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["id", "email"],
+                "properties": {
+                  "id":             { "type": "string", "example": "usr-001" },
+                  "email":         { "type": "string", "example": "alice@example.com" },
+                  "displayName":   { "type": "string", "example": "Alice" },
+                  "gmailToken":    { "type": "string", "example": "" },
+                  "telegramChatId":{ "type": "string", "example": "" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User upserted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data":  { "$ref": "#/components/schemas/User" },
+                    "error": { "nullable": true, "example": null }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "id or email missing" }
+        }
+      }
+    },
+    "/groups": {
+      "get": {
+        "tags": ["Groups"],
+        "summary": "List groups for the authenticated user",
+        "operationId": "listGroups",
+        "security": [{ "DevUserID": [] }],
+        "responses": {
+          "200": {
+            "description": "List of groups",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Group" }
+                    },
+                    "error": { "nullable": true, "example": null }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Missing X-User-ID header" }
+        }
+      },
+      "post": {
+        "tags": ["Groups"],
+        "summary": "Create a new group",
+        "operationId": "createGroup",
+        "security": [{ "DevUserID": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string", "example": "Study Squad" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Group created. The response includes an `inviteCode` for sharing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data":  { "$ref": "#/components/schemas/Group" },
+                    "error": { "nullable": true, "example": null }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "name is required" },
+          "404": { "description": "User not found — create the user first via PUT /users" }
+        }
+      }
+    },
+    "/groups/join": {
+      "post": {
+        "tags": ["Groups"],
+        "summary": "Join a group via invite code",
+        "description": "Pass the invite code from the group as a query parameter.",
+        "operationId": "joinGroup",
+        "security": [{ "DevUserID": [] }],
+        "parameters": [
+          { "name": "code", "in": "query", "required": true, "schema": { "type": "string" }, "example": "INVITE123" }
+        ],
+        "responses": {
+          "200": { "description": "Joined group" },
+          "404": { "description": "User or invite code not found" }
+        }
+      }
+    },
+    "/groups/{groupId}/members": {
+      "get": {
+        "tags": ["Groups"],
+        "summary": "List members of a group",
+        "operationId": "listGroupMembers",
+        "security": [{ "DevUserID": [] }],
+        "parameters": [
+          { "name": "groupId", "in": "path", "required": true, "schema": { "type": "string" }, "example": "grp-abc123" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Member list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/GroupMember" }
+                    },
+                    "error": { "nullable": true, "example": null }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups/{groupId}": {
+      "delete": {
+        "tags": ["Groups"],
+        "summary": "Delete a group",
+        "operationId": "deleteGroup",
+        "security": [{ "DevUserID": [] }],
+        "parameters": [
+          { "name": "groupId", "in": "path", "required": true, "schema": { "type": "string" }, "example": "grp-abc123" }
+        ],
+        "responses": {
+          "200": { "description": "Group deleted" },
+          "404": { "description": "Group not found" }
+        }
+      }
+    },
+    "/calendar": {
+      "get": {
+        "tags": ["Calendar"],
+        "summary": "Personal calendar view (UC3)",
+        "description": "Returns all events for the authenticated user within the specified time range. Defaults to the current week if `from`/`to` are omitted.",
+        "operationId": "personalCalendar",
+        "security": [{ "DevUserID": [] }],
+        "parameters": [
+          { "name": "from", "in": "query", "schema": { "type": "string", "format": "date-time" }, "example": "2026-04-14T00:00:00Z" },
+          { "name": "to",   "in": "query", "schema": { "type": "string", "format": "date-time" }, "example": "2026-04-20T23:59:59Z" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Calendar events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data":  { "$ref": "#/components/schemas/CalendarView" },
+                    "error": { "nullable": true, "example": null }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid date range" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/groups/{groupId}/calendar": {
+      "get": {
+        "tags": ["Calendar"],
+        "summary": "Group calendar view — overlay busy/free (UC4)",
+        "description": "Returns events for selected group members overlaid on a shared timeline. Pass `userIds` as a comma-separated list.",
+        "operationId": "groupCalendar",
+        "security": [{ "DevUserID": [] }],
+        "parameters": [
+          { "name": "groupId", "in": "path", "required": true, "schema": { "type": "string" }, "example": "grp-abc123" },
+          { "name": "userIds", "in": "query", "required": true, "schema": { "type": "string" }, "description": "Comma-separated user IDs", "example": "usr-001,usr-002,usr-003" },
+          { "name": "from", "in": "query", "schema": { "type": "string", "format": "date-time" }, "example": "2026-04-14T00:00:00Z" },
+          { "name": "to",   "in": "query", "schema": { "type": "string", "format": "date-time" }, "example": "2026-04-20T23:59:59Z" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Group calendar events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data":  { "$ref": "#/components/schemas/CalendarView" },
+                    "error": { "nullable": true, "example": null }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "groupId or userIds missing" }
+        }
+      }
+    },
+    "/groups/{groupId}/availability": {
+      "get": {
+        "tags": ["Availability"],
+        "summary": "Find shared free windows for a group (UC5)",
+        "description": "Returns time slots during which ALL group members are free. Defaults to the current week.",
+        "operationId": "groupAvailability",
+        "security": [{ "DevUserID": [] }],
+        "parameters": [
+          { "name": "groupId", "in": "path", "required": true, "schema": { "type": "string" }, "example": "grp-abc123" },
+          { "name": "from", "in": "query", "schema": { "type": "string", "format": "date-time" }, "example": "2026-04-14T00:00:00Z" },
+          { "name": "to",   "in": "query", "schema": { "type": "string", "format": "date-time" }, "example": "2026-04-20T23:59:59Z" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Free slot list",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AvailabilityResponse" }
+              }
+            }
+          },
+          "400": { "description": "groupId missing or invalid date range" }
+        }
+      }
+    },
+    "/events": {
+      "post": {
+        "tags": ["Events"],
+        "summary": "Create a manual event (UC6)",
+        "description": "Adds an event to the user's calendar. `startTime` and `endTime` must be RFC3339.",
+        "operationId": "createEvent",
+        "security": [{ "DevUserID": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "startTime", "endTime"],
+                "properties": {
+                  "title":     { "type": "string", "example": "Team Standup" },
+                  "eventType": { "type": "string", "example": "meeting" },
+                  "startTime": { "type": "string", "format": "date-time", "example": "2026-04-14T09:00:00Z" },
+                  "endTime":   { "type": "string", "format": "date-time", "example": "2026-04-14T10:00:00Z" },
+                  "groupId":   { "type": "string", "example": "grp-abc123", "description": "Optional: link to a group" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Event created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data":  { "$ref": "#/components/schemas/Event" },
+                    "error": { "nullable": true, "example": null }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid request body or timestamp format" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/events/{eventId}": {
+      "put": {
+        "tags": ["Events"],
+        "summary": "Update an event",
+        "operationId": "updateEvent",
+        "security": [{ "DevUserID": [] }],
+        "parameters": [
+          { "name": "eventId", "in": "path", "required": true, "schema": { "type": "string" }, "example": "evt-001" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title":     { "type": "string", "example": "Updated Standup" },
+                  "eventType": { "type": "string", "example": "meeting" },
+                  "startTime": { "type": "string", "format": "date-time", "example": "2026-04-14T09:30:00Z" },
+                  "endTime":   { "type": "string", "format": "date-time", "example": "2026-04-14T10:30:00Z" },
+                  "status":    { "type": "string", "enum": ["confirmed", "tentative", "cancelled"], "example": "confirmed" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Event updated" },
+          "400": { "description": "Invalid body or timestamp" },
+          "500": { "description": "Server error" }
+        }
+      },
+      "delete": {
+        "tags": ["Events"],
+        "summary": "Delete an event",
+        "operationId": "deleteEvent",
+        "security": [{ "DevUserID": [] }],
+        "parameters": [
+          { "name": "eventId", "in": "path", "required": true, "schema": { "type": "string" }, "example": "evt-001" }
+        ],
+        "responses": {
+          "200": { "description": "Event deleted" },
+          "400": { "description": "eventId missing" },
+          "500": { "description": "Server error" }
+        }
+      }
+    },
+    "/event-requests": {
+      "post": {
+        "tags": ["EventRequests"],
+        "summary": "Send a meeting request (UC7)",
+        "description": "Sender proposes an event to one or more group members. Notifications are created for all recipients.",
+        "operationId": "sendEventRequest",
+        "security": [{ "DevUserID": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["groupId", "eventId", "title", "recipientIds"],
+                "properties": {
+                  "groupId":      { "type": "string", "example": "grp-abc123" },
+                  "eventId":      { "type": "string", "example": "evt-001" },
+                  "title":        { "type": "string", "example": "Team lunch?" },
+                  "eventType":    { "type": "string", "example": "social" },
+                  "recipientIds": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "example": ["usr-002", "usr-003"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Request created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data":  { "$ref": "#/components/schemas/EventRequest" },
+                    "error": { "nullable": true, "example": null }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" },
+          "500": { "description": "Server error" }
+        }
+      }
+    },
+    "/event-requests/pending": {
+      "get": {
+        "tags": ["EventRequests"],
+        "summary": "List pending requests for the authenticated user (UC8)",
+        "description": "Returns all event requests where the authenticated user is a recipient and has not yet responded.",
+        "operationId": "listPendingRequests",
+        "security": [{ "DevUserID": [] }],
+        "responses": {
+          "200": {
+            "description": "Pending requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/EventRequest" }
+                    },
+                    "error": { "nullable": true, "example": null }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/event-requests/{requestId}/respond": {
+      "post": {
+        "tags": ["EventRequests"],
+        "summary": "Accept or reject a request (UC8)",
+        "description": "Records the authenticated user's decision. Updates the request status to `accepted` or `rejected`.",
+        "operationId": "respondToRequest",
+        "security": [{ "DevUserID": [] }],
+        "parameters": [
+          { "name": "requestId", "in": "path", "required": true, "schema": { "type": "string" }, "example": "req-001" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["decision"],
+                "properties": {
+                  "decision": { "type": "string", "enum": ["accepted", "rejected"], "example": "accepted" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Response recorded" },
+          "400": { "description": "requestId or decision missing" },
+          "401": { "description": "Unauthorized" },
+          "500": { "description": "Server error" }
+        }
+      }
+    },
+    "/notifications": {
+      "get": {
+        "tags": ["Notifications"],
+        "summary": "List notifications for the authenticated user (UC9)",
+        "operationId": "listNotifications",
+        "security": [{ "DevUserID": [] }],
+        "responses": {
+          "200": {
+            "description": "Notification list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Notification" }
+                    },
+                    "error": { "nullable": true, "example": null }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/notifications/{notificationId}/read": {
+      "post": {
+        "tags": ["Notifications"],
+        "summary": "Mark a notification as read",
+        "operationId": "markNotificationRead",
+        "security": [{ "DevUserID": [] }],
+        "parameters": [
+          { "name": "notificationId", "in": "path", "required": true, "schema": { "type": "string" }, "example": "notif-001" }
+        ],
+        "responses": {
+          "200": { "description": "Marked as read" },
+          "400": { "description": "notificationId missing" },
+          "500": { "description": "Server error" }
+        }
+      }
+    },
+    "/sync/google": {
+      "post": {
+        "tags": ["Sync"],
+        "summary": "Sync Google Calendar (UC10)",
+        "description": "Pulls the user's Google Calendar events and stores them locally. Requires a valid `gmailToken` on the user record.",
+        "operationId": "syncGoogle",
+        "security": [{ "DevUserID": [] }],
+        "responses": {
+          "200": { "description": "Sync complete" },
+          "401": { "description": "Unauthorized" },
+          "500": { "description": "Server error (e.g. Google API error)" }
+        }
+      }
+    },
+    "/sync/apple": {
+      "post": {
+        "tags": ["Sync"],
+        "summary": "Sync Apple Calendar (UC10 — stub)",
+        "description": "Apple Calendar connector is not yet configured. Returns a not-implemented error.",
+        "operationId": "syncApple",
+        "security": [{ "DevUserID": [] }],
+        "responses": {
+          "200": { "description": "Sync initiated" },
+          "500": { "description": "Not implemented" }
+        }
+      }
+    },
+    "/events/parse-text": {
+      "post": {
+        "tags": ["TextParser"],
+        "summary": "Parse natural-language event description (UC12)",
+        "description": "Sends a text string to the configured LLM (OpenAI/Gemini) to extract event details and create an event automatically.",
+        "operationId": "parseText",
+        "security": [{ "DevUserID": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["text"],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "example": "Schedule a team lunch next Monday at noon for 1 hour"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Event parsed and created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data":  { "$ref": "#/components/schemas/Event" },
+                    "error": { "nullable": true, "example": null }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "text field missing or LLM could not parse" },
+          "401": { "description": "Unauthorized" },
+          "500": { "description": "LLM API error — check LLM_API_KEY in .env" }
+        }
+      }
+    },
+    "/telegram/webhook": {
+      "post": {
+        "tags": ["Telegram"],
+        "summary": "Telegram bot webhook (UC11)",
+        "description": "Receives update payloads from the Telegram Bot API. Register this URL with Telegram using `setWebhook`. No `X-User-ID` header is used here — identity is resolved from the Telegram chat ID.",
+        "operationId": "telegramWebhook",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Standard Telegram Update object",
+                "properties": {
+                  "update_id": { "type": "integer" },
+                  "message": {
+                    "type": "object",
+                    "properties": {
+                      "chat": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "integer" }
+                        }
+                      },
+                      "text": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Update processed" }
+        }
+      }
+    }
+  }
+}

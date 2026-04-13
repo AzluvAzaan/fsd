@@ -89,6 +89,9 @@ func Initialize(cfg *config.Config) (*App, error) {
 	// --- Interface: Telegram bot handler ---
 	telegramBot := tginterface.NewBotHandler(telegramService, cfg.TelegramBotToken)
 
+	// --- Interface: API docs handler ---
+	docsHandler := rest.NewDocsHandler()
+
 	// --- HTTP router ---
 	router := infrahttp.NewRouter(
 		authHandler,
@@ -101,6 +104,7 @@ func Initialize(cfg *config.Config) (*App, error) {
 		textParserHandler,
 		userHandler,
 		telegramBot,
+		docsHandler,
 	)
 
 	log.Info("All dependencies initialized successfully")

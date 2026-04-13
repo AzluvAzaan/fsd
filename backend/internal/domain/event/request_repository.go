@@ -15,4 +15,7 @@ type RequestRepository interface {
 
 	// ListResponses returns all responses for a given request.
 	ListResponses(ctx context.Context, requestID string) ([]*EventResponse, error)
+
+	// UpdateStatus updates the overall status of an event request.
+	UpdateStatus(ctx context.Context, requestID string, status string) error
 }

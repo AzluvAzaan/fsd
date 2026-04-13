@@ -79,11 +79,11 @@ func Initialize(cfg *config.Config) (*App, error) {
 	authHandler := rest.NewAuthHandler(authService)
 	groupHandler := rest.NewGroupHandler(groupService)
 	calendarHandler := rest.NewCalendarHandler(calendarService)
-	eventHandler := rest.NewEventHandler(eventService)
-	eventReqHandler := rest.NewEventRequestHandler(eventReqService)
+	eventHandler := rest.NewEventHandler(eventService, ch)
+	eventReqHandler := rest.NewEventRequestHandler(eventReqService, ch)
 	notifHandler := rest.NewNotificationHandler(notifService)
 	syncHandler := rest.NewSyncHandler(syncService, ch)
-	textParserHandler := rest.NewTextParserHandler(textParserService)
+	textParserHandler := rest.NewTextParserHandler(textParserService, ch)
 	userHandler := rest.NewUserHandler(userService)
 
 	// --- Interface: Telegram bot handler ---

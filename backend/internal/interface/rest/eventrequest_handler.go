@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/fsd-group/fsd/internal/choreographer"
 	"github.com/fsd-group/fsd/internal/usecase/eventrequest"
 	"github.com/fsd-group/fsd/pkg/middleware"
 	"github.com/fsd-group/fsd/pkg/response"
@@ -12,11 +13,12 @@ import (
 // EventRequestHandler handles HTTP requests for UC7 (send request) and UC8 (respond).
 type EventRequestHandler struct {
 	eventReqService *eventrequest.Service
+	choreographer   *choreographer.Choreographer
 }
 
 // NewEventRequestHandler creates a new event request handler.
-func NewEventRequestHandler(eventReqService *eventrequest.Service) *EventRequestHandler {
-	return &EventRequestHandler{eventReqService: eventReqService}
+func NewEventRequestHandler(eventReqService *eventrequest.Service, ch *choreographer.Choreographer) *EventRequestHandler {
+	return &EventRequestHandler{eventReqService: eventReqService, choreographer: ch}
 }
 
 type sendEventRequestBody struct {
@@ -91,6 +93,16 @@ func (h *EventRequestHandler) Respond(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	eventType := choreographer.EventTypeEventRequestRejected
+	if req.Decision == "accepted" {
+		eventType = choreographer.EventTypeEventRequestAccepted
+	}
+	h.choreographer.Publish(eventType, choreographer.EventRequestResponsePayload{
+		RequestID: requestID,
+		UserID:    userID,
+		Response:  req.Decision,
+	})
 
 	response.Success(w, map[string]string{"message": "response recorded"})
 }

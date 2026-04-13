@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fsd-group/fsd/internal/choreographer"
 	domainevent "github.com/fsd-group/fsd/internal/domain/event"
 	"github.com/fsd-group/fsd/internal/usecase/event"
 	"github.com/fsd-group/fsd/pkg/middleware"
@@ -14,12 +15,13 @@ import (
 
 // EventHandler handles HTTP requests for UC6: Add Manual Event.
 type EventHandler struct {
-	eventService *event.Service
+	eventService  *event.Service
+	choreographer *choreographer.Choreographer
 }
 
 // NewEventHandler creates a new event handler.
-func NewEventHandler(eventService *event.Service) *EventHandler {
-	return &EventHandler{eventService: eventService}
+func NewEventHandler(eventService *event.Service, ch *choreographer.Choreographer) *EventHandler {
+	return &EventHandler{eventService: eventService, choreographer: ch}
 }
 
 type createManualEventRequest struct {
@@ -72,6 +74,11 @@ func (h *EventHandler) CreateManualEvent(w http.ResponseWriter, r *http.Request)
 		response.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
+
+	h.choreographer.Publish(choreographer.EventTypeManualEventCreated, choreographer.ManualEventCreatedPayload{
+		EventID: created.ID,
+		UserID:  userID,
+	})
 
 	response.Created(w, created)
 }

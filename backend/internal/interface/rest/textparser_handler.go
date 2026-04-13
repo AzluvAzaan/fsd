@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/fsd-group/fsd/internal/choreographer"
 	"github.com/fsd-group/fsd/internal/usecase/textparser"
 	"github.com/fsd-group/fsd/pkg/middleware"
 	"github.com/fsd-group/fsd/pkg/response"
@@ -12,11 +13,12 @@ import (
 // TextParserHandler handles HTTP requests for UC12: Add Event via Text.
 type TextParserHandler struct {
 	parserService *textparser.Service
+	choreographer *choreographer.Choreographer
 }
 
 // NewTextParserHandler creates a new text parser handler.
-func NewTextParserHandler(parserService *textparser.Service) *TextParserHandler {
-	return &TextParserHandler{parserService: parserService}
+func NewTextParserHandler(parserService *textparser.Service, ch *choreographer.Choreographer) *TextParserHandler {
+	return &TextParserHandler{parserService: parserService, choreographer: ch}
 }
 
 type parseTextRequest struct {
@@ -48,6 +50,11 @@ func (h *TextParserHandler) ParseText(w http.ResponseWriter, r *http.Request) {
 		response.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	h.choreographer.Publish(choreographer.EventTypeManualEventCreated, choreographer.ManualEventCreatedPayload{
+		EventID: created.ID,
+		UserID:  userID,
+	})
 
 	response.Created(w, created)
 }

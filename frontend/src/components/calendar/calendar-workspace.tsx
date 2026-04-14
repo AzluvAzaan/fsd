@@ -11,6 +11,7 @@ import { ChevronLeft, ChevronRight, Clock3, Layers3, Sparkles, X } from "lucide-
 import { PageHeader } from "@/components/shared/page-header";
 import { SectionCard } from "@/components/shared/section-card";
 import { buttonVariants } from "@/components/ui/button";
+import { getCalendar } from "@/lib/api";
 import {
   availabilitySlots,
   groupMembers,
@@ -19,6 +20,7 @@ import {
   requests,
   type CalendarEvent,
 } from "@/lib/constants/mock-data";
+import { getStoredUser } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 type CalendarWorkspaceProps = {
@@ -285,15 +287,30 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
   const calendarRef = useRef<FullCalendar | null>(null);
   const [mounted, setMounted] = useState(false);
   const [viewMode, setViewMode] = useState<"week" | "month">("week");
-  const events = scope === "personal" ? personalCalendarEvents : groupCalendarEvents;
+
+  // When logged in (personal scope), fetch real events; fall back to mock in dev mode
+  const [livePersonalEvents, setLivePersonalEvents] = useState<CalendarEvent[] | null>(null);
+
+  const basePersonalEvents = livePersonalEvents ?? personalCalendarEvents;
+  const events = scope === "personal" ? basePersonalEvents : groupCalendarEvents;
   const calendarFeedEvents = scope === "personal"
     ? events.map(toEventInput)
     : compositeGroupEvents.map(toCompositeEventInput);
-  const [calendarTitle, setCalendarTitle] = useState("Mar 16 – 22, 2026");
-  const [selectedDate, setSelectedDate] = useState(getDateKey(events[0]?.startAt ?? "2026-03-16T09:00:00"));
-  const [visibleRange, setVisibleRange] = useState({
-    start: new Date("2026-03-16T00:00:00"),
-    end: new Date("2026-03-23T00:00:00"),
+  const [calendarTitle, setCalendarTitle] = useState(() => {
+    const now = new Date();
+    return now.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  });
+  const todayKey = getDateKey(new Date());
+  const [selectedDate, setSelectedDate] = useState(() =>
+    livePersonalEvents ? todayKey : getDateKey(events[0]?.startAt ?? new Date().toISOString()),
+  );
+  const [visibleRange, setVisibleRange] = useState(() => {
+    const now = new Date();
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 7);
+    return { start, end };
   });
   const [hoverTooltip, setHoverTooltip] = useState<HoverTooltip>(null);
   const [clickedEvent, setClickedEvent] = useState<ClickedEvent>(null);
@@ -301,6 +318,31 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
 
   // Prevent SSR rendering of FullCalendar (avoids hydration mismatch + flushSync errors)
   useEffect(() => { setMounted(true); }, []);
+
+  // Fetch real events when user is logged in (personal scope only)
+  useEffect(() => {
+    if (scope !== "personal") return;
+    const user = getStoredUser();
+    if (!user) return;
+    getCalendar().then((view) => {
+      const mapped: CalendarEvent[] = (view.events ?? []).map((e) => ({
+        id: e.id,
+        title: e.title,
+        startAt: e.startTime,
+        endAt: e.endTime,
+        tone: "default" as const,
+      }));
+      setLivePersonalEvents(mapped);
+      if (mapped.length > 0) {
+        setSelectedDate(getDateKey(mapped[0].startAt));
+      } else {
+        setSelectedDate(todayKey);
+      }
+    }).catch(() => {
+      // silently fall back to mock data
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scope]);
 
   useEffect(() => {
     const api = calendarRef.current?.getApi();
@@ -545,7 +587,7 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
                 ref={calendarRef}
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                 initialView="timeGridWeek"
-                initialDate={events[0]?.startAt}
+                initialDate={livePersonalEvents ? new Date().toISOString() : (events[0]?.startAt ?? new Date().toISOString())}
                 headerToolbar={false}
                 firstDay={1}
                 weekends

@@ -1,28 +1,96 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CheckCheck, ChevronDown } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
-import { notifications, type NotificationItem } from "@/lib/constants/mock-data";
+import { getNotifications, markNotificationRead, type ApiNotification } from "@/lib/api";
+import { notifications as mockNotifications, type NotificationItem } from "@/lib/constants/mock-data";
+import { getStoredUser } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 type Filter = "all" | "unread";
 
-export function NotificationsWorkspace() {
-  const [items, setItems] = useState<NotificationItem[]>(notifications);
-  const [filter, setFilter] = useState<Filter>("all");
-  const [expandedId, setExpandedId] = useState<string | null>(items[0]?.id ?? null);
+function formatNotificationType(type: string): string {
+  return type
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
+function formatSentAt(sentAt: string): string {
+  const date = new Date(sentAt);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "Just now";
+  if (diffMin < 60) return `${diffMin} min ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr} hr ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay === 1) return "Yesterday";
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function apiNotifToUINotif(n: ApiNotification): NotificationItem {
+  return {
+    id: n.id,
+    title: formatNotificationType(n.type),
+    body: n.channel === "in_app"
+      ? "In-app notification · " + formatSentAt(n.sentAt)
+      : `Sent via ${n.channel} · ` + formatSentAt(n.sentAt),
+    time: formatSentAt(n.sentAt),
+    unread: true,
+  };
+}
+
+export function NotificationsWorkspace() {
+  const isLoggedIn = !!getStoredUser();
+
+  const [mockItems, setMockItems] = useState<NotificationItem[]>(mockNotifications);
+  const [liveItems, setLiveItems] = useState<NotificationItem[] | null>(null);
+  const [loading, setLoading] = useState(isLoggedIn);
+
+  const [filter, setFilter] = useState<Filter>("all");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    getNotifications()
+      .then((data) => {
+        const mapped = data.map(apiNotifToUINotif);
+        setLiveItems(mapped);
+        setExpandedId(mapped[0]?.id ?? null);
+      })
+      .finally(() => setLoading(false));
+  }, [isLoggedIn]);
+
+  const items = isLoggedIn ? (liveItems ?? []) : mockItems;
   const filteredItems = items.filter((item) => filter === "all" || item.unread);
   const unreadCount = items.filter((item) => item.unread).length;
 
-  const markRead = (id: string) => {
-    setItems((current) => current.map((item) => (item.id === id ? { ...item, unread: false } : item)));
+  const markRead = async (id: string) => {
+    if (isLoggedIn) {
+      try {
+        await markNotificationRead(id);
+      } catch {
+        // best-effort; update UI regardless
+      }
+      setLiveItems((current) =>
+        current ? current.map((item) => (item.id === id ? { ...item, unread: false } : item)) : current,
+      );
+    } else {
+      setMockItems((current) => current.map((item) => (item.id === id ? { ...item, unread: false } : item)));
+    }
   };
 
-  const markAllRead = () => {
-    setItems((current) => current.map((item) => ({ ...item, unread: false })));
+  const markAllRead = async () => {
+    if (isLoggedIn) {
+      const unread = (liveItems ?? []).filter((n) => n.unread);
+      await Promise.allSettled(unread.map((n) => markNotificationRead(n.id)));
+      setLiveItems((current) => current ? current.map((item) => ({ ...item, unread: false })) : current);
+    } else {
+      setMockItems((current) => current.map((item) => ({ ...item, unread: false })));
+    }
   };
 
   const toggleExpand = (id: string) => {
@@ -72,10 +140,18 @@ export function NotificationsWorkspace() {
         }
       />
 
-      {filteredItems.length === 0 ? (
+      {loading ? (
+        <div className="space-y-2">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-16 animate-pulse rounded-[1.5rem] border border-border/70 bg-card" />
+          ))}
+        </div>
+      ) : filteredItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-border bg-card/50 py-24 text-center">
           <p className="text-lg font-semibold">All caught up</p>
-          <p className="mt-2 text-sm text-muted-foreground">No {filter === "unread" ? "unread " : ""}notifications right now.</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            No {filter === "unread" ? "unread " : ""}notifications right now.
+          </p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -113,7 +189,6 @@ function NotificationRow({
         item.unread && "border-primary/20 bg-primary/[0.02]",
       )}
     >
-      {/* Row header — always visible */}
       <button
         type="button"
         onClick={onToggle}
@@ -137,7 +212,6 @@ function NotificationRow({
         />
       </button>
 
-      {/* Expanded body */}
       {expanded && (
         <div className="border-t border-border/60 px-6 py-4">
           <p className="text-sm leading-6 text-muted-foreground">{item.body}</p>

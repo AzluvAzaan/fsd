@@ -70,7 +70,7 @@ func Initialize(cfg *config.Config) (*App, error) {
 	eventService := event.NewService(eventRepo, calendarRepo)
 	eventReqService := eventrequest.NewService(eventReqRepo, eventRepo, notifRepo, googleClient)
 	notifService := notification.NewService(notifRepo)
-	syncService := synccal.NewService(eventRepo, calendarRepo, googleClient, nil) // apple connector: nil until configured
+	syncService := synccal.NewService(eventRepo, calendarRepo, googleClient, nil, userRepo) // apple connector: nil until configured
 	textParserService := textparser.NewService(eventRepo, llmClient, calendarRepo)
 	userService := useruc.NewService(userRepo)
 	telegramService := telegram.NewService(eventRepo, textParserService, eventReqService)

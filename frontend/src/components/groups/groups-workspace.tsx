@@ -1,57 +1,139 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, Users } from "lucide-react";
 
 import { Modal } from "@/components/shared/modal";
 import { PageHeader } from "@/components/shared/page-header";
-import { groups, type Group } from "@/lib/constants/mock-data";
+import { createGroup, getGroups, joinGroup, type ApiGroup } from "@/lib/api";
+import { groups as mockGroups, type Group } from "@/lib/constants/mock-data";
+import { getStoredUser } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 type ModalMode = "create" | "join" | null;
 
+// Adapt real API group to the UI shape (accent cycles through preset colors)
+const ACCENTS = [
+  "from-violet-500 to-indigo-500",
+  "from-fuchsia-500 to-violet-500",
+  "from-indigo-500 to-sky-500",
+  "from-emerald-500 to-teal-500",
+  "from-amber-500 to-orange-500",
+];
+
+function apiGroupToUIGroup(g: ApiGroup, index: number): Group {
+  return {
+    id: g.id,
+    name: g.name,
+    description: `Invite code: ${g.inviteCode}`,
+    members: 1,
+    role: "Owner",
+    nextWindow: "Set after members join",
+    accent: ACCENTS[index % ACCENTS.length],
+  };
+}
+
 export function GroupsWorkspace() {
-  const [items, setItems] = useState<Group[]>(groups);
+  const isLoggedIn = !!getStoredUser();
+
+  // Dev mode: static mock state
+  const [mockItems, setMockItems] = useState<Group[]>(mockGroups);
+
+  // Live mode: fetched groups
+  const [liveItems, setLiveItems] = useState<Group[] | null>(null);
+  const [loading, setLoading] = useState(isLoggedIn);
+  const [error, setError] = useState<string | null>(null);
+
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
   const [inviteCode, setInviteCode] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleCreateGroup = () => {
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    getGroups()
+      .then((data) => setLiveItems(data.map(apiGroupToUIGroup)))
+      .catch((err: Error) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [isLoggedIn]);
+
+  const items = isLoggedIn ? (liveItems ?? []) : mockItems;
+
+  const handleCreateGroup = async () => {
     if (!groupName.trim()) return;
-    const id = groupName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-");
-    const nextGroup: Group = {
-      id,
-      name: groupName.trim(),
-      description: groupDescription.trim() || "New coordination group.",
-      members: 1,
-      role: "Owner",
-      nextWindow: "Best overlap: Set after invites",
-      accent: "from-violet-500 to-indigo-500",
-    };
-    setItems([nextGroup, ...items]);
-    setGroupName("");
-    setGroupDescription("");
-    setModalMode(null);
+
+    if (!isLoggedIn) {
+      // Dev mode: local state only
+      const id = groupName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-");
+      const nextGroup: Group = {
+        id,
+        name: groupName.trim(),
+        description: groupDescription.trim() || "New coordination group.",
+        members: 1,
+        role: "Owner",
+        nextWindow: "Best overlap: Set after invites",
+        accent: "from-violet-500 to-indigo-500",
+      };
+      setMockItems([nextGroup, ...mockItems]);
+      setGroupName("");
+      setGroupDescription("");
+      setModalMode(null);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const created = await createGroup(groupName.trim());
+      const uiGroup = apiGroupToUIGroup(created, liveItems?.length ?? 0);
+      setLiveItems((prev) => [uiGroup, ...(prev ?? [])]);
+      setGroupName("");
+      setGroupDescription("");
+      setModalMode(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create group");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleJoinGroup = () => {
+  const handleJoinGroup = async () => {
     const code = inviteCode.trim();
     if (!code) return;
-    const joinedGroup: Group = {
-      id: code.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "invite-group",
-      name: `Invite ${code.toUpperCase()}`,
-      description: "Joined via invite code.",
-      members: 4,
-      role: "Member",
-      nextWindow: "Best overlap: Fri 3:00 PM",
-      accent: "from-indigo-500 to-sky-500",
-    };
-    const existing = items.find((g) => g.id === joinedGroup.id);
-    if (!existing) setItems([joinedGroup, ...items]);
-    setInviteCode("");
-    setModalMode(null);
+
+    if (!isLoggedIn) {
+      // Dev mode: local state only
+      const joinedGroup: Group = {
+        id: code.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "invite-group",
+        name: `Invite ${code.toUpperCase()}`,
+        description: "Joined via invite code.",
+        members: 4,
+        role: "Member",
+        nextWindow: "Best overlap: Fri 3:00 PM",
+        accent: "from-indigo-500 to-sky-500",
+      };
+      if (!mockItems.find((g) => g.id === joinedGroup.id)) {
+        setMockItems([joinedGroup, ...mockItems]);
+      }
+      setInviteCode("");
+      setModalMode(null);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await joinGroup(code);
+      // Refresh list
+      const data = await getGroups();
+      setLiveItems(data.map(apiGroupToUIGroup));
+      setInviteCode("");
+      setModalMode(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to join group");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -82,7 +164,19 @@ export function GroupsWorkspace() {
           }
         />
 
-        {items.length === 0 ? (
+        {error && (
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-48 animate-pulse rounded-[2rem] border border-border/70 bg-card" />
+            ))}
+          </div>
+        ) : items.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-border bg-card/50 py-24 text-center">
             <div className="mb-4 grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary">
               <Users className="size-6" />
@@ -117,15 +211,17 @@ export function GroupsWorkspace() {
               autoFocus
             />
           </label>
-          <label className="block">
-            <span className="text-sm font-medium">Description</span>
-            <textarea
-              value={groupDescription}
-              onChange={(e) => setGroupDescription(e.target.value)}
-              className="mt-2 min-h-24 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary/50 resize-none"
-              placeholder="Describe what this group coordinates."
-            />
-          </label>
+          {!isLoggedIn && (
+            <label className="block">
+              <span className="text-sm font-medium">Description</span>
+              <textarea
+                value={groupDescription}
+                onChange={(e) => setGroupDescription(e.target.value)}
+                className="mt-2 min-h-24 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary/50 resize-none"
+                placeholder="Describe what this group coordinates."
+              />
+            </label>
+          )}
           <div className="flex justify-end gap-3 pt-1">
             <button
               type="button"
@@ -137,10 +233,10 @@ export function GroupsWorkspace() {
             <button
               type="button"
               onClick={handleCreateGroup}
-              disabled={!groupName.trim()}
+              disabled={!groupName.trim() || submitting}
               className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-40"
             >
-              Create group
+              {submitting ? "Creating…" : "Create group"}
             </button>
           </div>
         </div>
@@ -175,10 +271,10 @@ export function GroupsWorkspace() {
             <button
               type="button"
               onClick={handleJoinGroup}
-              disabled={!inviteCode.trim()}
+              disabled={!inviteCode.trim() || submitting}
               className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-40"
             >
-              Join group
+              {submitting ? "Joining…" : "Join group"}
             </button>
           </div>
         </div>

@@ -1,28 +1,90 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { RequestList } from "@/components/requests/request-list";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { SectionCard } from "@/components/shared/section-card";
-import { requests, type RequestItem } from "@/lib/constants/mock-data";
+import { getEventRequests, respondToEventRequest, type ApiEventRequest } from "@/lib/api";
+import { requests as mockRequests, type RequestItem } from "@/lib/constants/mock-data";
+import { getStoredUser } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 const typeFilters = ["all", "received", "sent"] as const;
 type TypeFilter = (typeof typeFilters)[number];
 
+function formatProposedTime(start: string, end: string): string {
+  if (!start) return "Time not set";
+  const s = new Date(start);
+  const e = new Date(end);
+  const datePart = s.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  const startTime = s.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const endTime = e.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  return `${datePart} · ${startTime} – ${endTime}`;
+}
+
+function apiRequestToUIRequest(r: ApiEventRequest): RequestItem {
+  return {
+    id: r.id,
+    title: r.title || "Event request",
+    type: "received", // ListPending only returns requests where current user is recipient
+    group: r.groupId,
+    proposedTime: formatProposedTime(r.proposedStart, r.proposedEnd),
+    status: r.status === "rejected" ? "declined" : (r.status as RequestItem["status"]),
+    from: r.senderId,
+  };
+}
+
 export function RequestsWorkspace() {
-  const [items, setItems] = useState<RequestItem[]>(requests);
+  const isLoggedIn = !!getStoredUser();
+
+  const [mockItems, setMockItems] = useState<RequestItem[]>(mockRequests);
+  const [liveItems, setLiveItems] = useState<RequestItem[] | null>(null);
+  const [loading, setLoading] = useState(isLoggedIn);
+  const [error, setError] = useState<string | null>(null);
+
   const [filter, setFilter] = useState<TypeFilter>("all");
-  const [selectedRequestId, setSelectedRequestId] = useState(items[0]?.id ?? "");
+  const [selectedRequestId, setSelectedRequestId] = useState("");
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    getEventRequests()
+      .then((data) => {
+        const mapped = data.map(apiRequestToUIRequest);
+        setLiveItems(mapped);
+        setSelectedRequestId(mapped[0]?.id ?? "");
+      })
+      .catch((err: Error) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [isLoggedIn]);
+
+  const items = isLoggedIn ? (liveItems ?? []) : mockItems;
 
   const filteredItems = items.filter((item) => filter === "all" || item.type === filter);
   const selectedRequest = filteredItems.find((item) => item.id === selectedRequestId) ?? filteredItems[0];
 
-  const handleStatusChange = (requestId: string, status: RequestItem["status"]) => {
-    setItems((current) => current.map((item) => (item.id === requestId ? { ...item, status } : item)));
+  const handleStatusChange = async (requestId: string, status: RequestItem["status"]) => {
     setSelectedRequestId(requestId);
+
+    if (!isLoggedIn) {
+      setMockItems((current) =>
+        current.map((item) => (item.id === requestId ? { ...item, status } : item)),
+      );
+      return;
+    }
+
+    const decision = status === "accepted" ? "accepted" : "rejected";
+    try {
+      await respondToEventRequest(requestId, decision);
+      setLiveItems((current) =>
+        current
+          ? current.map((item) => (item.id === requestId ? { ...item, status } : item))
+          : current,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to respond to request");
+    }
   };
 
   return (
@@ -50,8 +112,27 @@ export function RequestsWorkspace() {
         }
       />
 
-      {filteredItems.length === 0 ? (
-        <EmptyState title="No requests in this view" body="Try a different filter or check back when new requests arrive." />
+      {error && (
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="space-y-4">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-32 animate-pulse rounded-3xl border border-border/70 bg-card" />
+          ))}
+        </div>
+      ) : filteredItems.length === 0 ? (
+        <EmptyState
+          title="No requests in this view"
+          body={
+            isLoggedIn
+              ? "You have no pending requests. Once group members send you event proposals, they will appear here."
+              : "Try a different filter or check back when new requests arrive."
+          }
+        />
       ) : (
         <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <RequestList
@@ -66,19 +147,25 @@ export function RequestsWorkspace() {
             <h2 className="mt-2 text-2xl font-semibold tracking-tight">{selectedRequest?.title}</h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {selectedRequest
-                ? "This side panel keeps the currently selected request visible while you continue scanning the list."
+                ? "Keep the currently selected request visible while you scan the list."
                 : "Select a request to inspect its details."}
             </p>
 
             {selectedRequest ? (
               <div className="mt-6 space-y-4">
                 <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
-                  <p className="text-sm font-medium text-muted-foreground">Group</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {isLoggedIn ? "Group ID" : "Group"}
+                  </p>
                   <p className="mt-2 text-lg font-semibold">{selectedRequest.group}</p>
                 </div>
                 <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
                   <p className="text-sm font-medium text-muted-foreground">Proposed time</p>
                   <p className="mt-2 text-lg font-semibold">{selectedRequest.proposedTime}</p>
+                </div>
+                <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
+                  <p className="text-sm font-medium text-muted-foreground">From</p>
+                  <p className="mt-2 text-lg font-semibold">{selectedRequest.from}</p>
                 </div>
                 <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
                   <p className="text-sm font-medium text-muted-foreground">Status</p>

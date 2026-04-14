@@ -1,37 +1,51 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
-import { SlotList } from "@/components/availability/slot-list";
+import { SlotList, type AvailabilitySlotItem } from "@/components/availability/slot-list";
 import { PageHeader } from "@/components/shared/page-header";
 import { SectionCard } from "@/components/shared/section-card";
-import { availabilitySlots } from "@/lib/constants/mock-data";
 import { cn } from "@/lib/utils";
 
 type AvailabilityPlannerProps = {
+  groupId?: string;
   groupName?: string;
+  slots: AvailabilitySlotItem[];
+  groupMemberNames: string[];
+  loading?: boolean;
+  error?: string | null;
 };
 
 const durations = ["30 min", "60 min", "90 min"] as const;
 const ranges = ["This week", "Next 7 days", "Next 2 weeks"] as const;
 
-export function AvailabilityPlanner({ groupName }: AvailabilityPlannerProps) {
+export function AvailabilityPlanner({
+  groupId,
+  groupName,
+  slots,
+  groupMemberNames,
+  loading = false,
+  error = null,
+}: AvailabilityPlannerProps) {
   const [selectedRange, setSelectedRange] =
     useState<(typeof ranges)[number]>("This week");
   const [selectedDuration, setSelectedDuration] =
     useState<(typeof durations)[number]>("60 min");
-  const [minimumParticipants, setMinimumParticipants] = useState(3);
-  const [selectedSlotId, setSelectedSlotId] = useState(
-    availabilitySlots[0]?.id ?? "",
-  );
+  const [minimumParticipants, setMinimumParticipants] = useState(2);
+  const [selectedSlotId, setSelectedSlotId] = useState("");
   const [requestDrafted, setRequestDrafted] = useState(false);
+
+  const maxParticipants = Math.max(2, groupMemberNames.length || 2);
+  const effectiveMinimumParticipants = Math.min(minimumParticipants, maxParticipants);
 
   const filteredSlots = useMemo(
     () =>
-      availabilitySlots.filter(
-        (slot) => slot.participants.length >= minimumParticipants,
+      slots.filter(
+        (slot) => slot.participants.length >= effectiveMinimumParticipants,
       ),
-    [minimumParticipants],
+    [effectiveMinimumParticipants, slots],
   );
 
   const selectedSlot =
@@ -40,6 +54,17 @@ export function AvailabilityPlanner({ groupName }: AvailabilityPlannerProps) {
 
   return (
     <div className="space-y-6">
+      {/* Back arrow */}
+      {groupId && (
+        <Link
+          href={`/app/groups/${groupId}`}
+          className="inline-flex items-center justify-center size-10 rounded-full border border-border hover:bg-muted transition-colors"
+          aria-label="Back to group"
+        >
+          <ArrowLeft className="size-4" />
+        </Link>
+      )}
+
       <PageHeader
         eyebrow="Shared free slots"
         title={`${groupName ?? "Group"} availability`}
@@ -98,8 +123,8 @@ export function AvailabilityPlanner({ groupName }: AvailabilityPlannerProps) {
               <input
                 type="range"
                 min={2}
-                max={5}
-                value={minimumParticipants}
+                max={maxParticipants}
+                value={effectiveMinimumParticipants}
                 onChange={(event) =>
                   setMinimumParticipants(Number(event.target.value))
                 }
@@ -107,7 +132,7 @@ export function AvailabilityPlanner({ groupName }: AvailabilityPlannerProps) {
               />
             </label>
             <p className="mt-2 text-sm font-semibold">
-              {minimumParticipants}+ people available
+              {effectiveMinimumParticipants}+ people available
             </p>
           </div>
         </div>
@@ -133,20 +158,32 @@ export function AvailabilityPlanner({ groupName }: AvailabilityPlannerProps) {
                 Candidate slots
               </p>
               <p className="mt-3 text-xl font-semibold">
-                {filteredSlots.length}
+                {loading ? "..." : filteredSlots.length}
               </p>
             </SectionCard>
           </div>
 
-          <SlotList
-            items={filteredSlots}
-            selectedSlotId={selectedSlot?.id}
-            onSelect={(slotId) => {
-              setSelectedSlotId(slotId);
-              setRequestDrafted(false);
-            }}
-            actionLabel="Inspect slot"
-          />
+          {error ? (
+            <SectionCard>
+              <p className="text-sm text-destructive">{error}</p>
+            </SectionCard>
+          ) : loading ? (
+            <div className="space-y-4">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-36 animate-pulse rounded-3xl border border-border/70 bg-card" />
+              ))}
+            </div>
+          ) : (
+            <SlotList
+              items={filteredSlots}
+              selectedSlotId={selectedSlot?.id}
+              onSelect={(slotId) => {
+                setSelectedSlotId(slotId);
+                setRequestDrafted(false);
+              }}
+              actionLabel="Inspect slot"
+            />
+          )}
         </div>
 
         <SectionCard>

@@ -65,7 +65,7 @@ function LoginCard() {
 export default function LoginPage() {
   return (
     <div className="min-h-screen bg-background">
-      <MarketingHeader />
+      <MarketingHeader hideLoginButton />
       <main className="mx-auto flex min-h-[calc(100vh-73px)] max-w-7xl items-center px-6 py-16">
         <div className="grid w-full gap-12 lg:grid-cols-[1fr_420px] lg:items-center">
           <div>

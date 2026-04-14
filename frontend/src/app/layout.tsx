@@ -7,6 +7,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "FSD Frontend",
   description: "Low-friction frontend starter for the FSD web app.",
+  icons: {
+    icon: "/rabbit.png",
+    shortcut: "/rabbit.png",
+    apple: "/rabbit.png",
+  },
 };
 
 export default function RootLayout({

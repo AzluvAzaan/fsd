@@ -33,6 +33,30 @@ export type CalendarView = {
   events: ApiEvent[];
 };
 
+export type ApiBusySlot = {
+  userId: string;
+  startTime: string;
+  endTime: string;
+};
+
+export type ApiFreeSlot = {
+  startTime: string;
+  endTime: string;
+};
+
+export type GroupCalendarView = {
+  groupId: string;
+  userIds: string[];
+  from: string;
+  to: string;
+  busySlots: ApiBusySlot[];
+  freeSlots: ApiFreeSlot[];
+};
+
+export type GroupAvailabilityResponse = {
+  freeSlots: ApiFreeSlot[];
+};
+
 export type ApiGroup = {
   id: string;
   name: string;
@@ -122,6 +146,31 @@ export async function getCalendar(from?: string, to?: string): Promise<CalendarV
   if (to) params.set("to", to);
   const query = params.toString();
   return apiFetch<CalendarView>(`/calendar${query ? `?${query}` : ""}`);
+}
+
+export async function getGroupCalendar(
+  groupId: string,
+  userIds: string[],
+  from?: string,
+  to?: string,
+): Promise<GroupCalendarView> {
+  const params = new URLSearchParams();
+  params.set("userIds", userIds.join(","));
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+  return apiFetch<GroupCalendarView>(`/groups/${groupId}/calendar?${params.toString()}`);
+}
+
+export async function getGroupAvailability(
+  groupId: string,
+  from?: string,
+  to?: string,
+): Promise<GroupAvailabilityResponse> {
+  const params = new URLSearchParams();
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+  const query = params.toString();
+  return apiFetch<GroupAvailabilityResponse>(`/groups/${groupId}/availability${query ? `?${query}` : ""}`);
 }
 
 // --- Groups ---

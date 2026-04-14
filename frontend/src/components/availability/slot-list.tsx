@@ -1,16 +1,23 @@
-import type { AvailabilitySlot } from "@/lib/constants/mock-data";
-import { availabilitySlots } from "@/lib/constants/mock-data";
 import { cn } from "@/lib/utils";
 
+export type AvailabilitySlotItem = {
+  id: string;
+  date: string;
+  time: string;
+  confidence: string;
+  participants: string[];
+  note: string;
+};
+
 type SlotListProps = {
-  items?: AvailabilitySlot[];
+  items: AvailabilitySlotItem[];
   selectedSlotId?: string;
   onSelect?: (slotId: string) => void;
   actionLabel?: string;
 };
 
 export function SlotList({
-  items = availabilitySlots,
+  items,
   selectedSlotId,
   onSelect,
   actionLabel = "Review slot",

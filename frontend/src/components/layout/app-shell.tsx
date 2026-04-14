@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { AppLogo } from "@/components/layout/app-logo";
+
 const navItems = [
   { href: "/", label: "Home" },
   { href: "/dev/backend-test", label: "Backend Test" },
@@ -10,9 +12,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-muted/30 text-foreground">
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">FSD</p>
-            <h1 className="text-lg font-semibold tracking-tight">Frontend Starter</h1>
+          <div className="flex items-center gap-3">
+            <AppLogo size={36} className="rounded-xl" />
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">FSD</p>
+              <h1 className="text-lg font-semibold tracking-tight">Frontend Starter</h1>
+            </div>
           </div>
           <nav className="flex items-center gap-3 text-sm text-muted-foreground">
             {navItems.map((item) => (

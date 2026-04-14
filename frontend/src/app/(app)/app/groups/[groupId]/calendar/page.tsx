@@ -14,5 +14,5 @@ export default function GroupCalendarPage() {
     getGroupById(groupId).then(setGroup).catch(() => null);
   }, [groupId]);
 
-  return <CalendarClient scope="group" groupName={group?.name} />;
+  return <CalendarClient scope="group" groupName={group?.name} groupId={groupId} />;
 }

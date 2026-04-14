@@ -12,8 +12,9 @@ const CalendarWorkspace = dynamic(
 type CalendarClientProps = {
   scope?: "personal" | "group";
   groupName?: string;
+  groupId?: string;
 };
 
-export function CalendarClient({ scope, groupName }: CalendarClientProps) {
-  return <CalendarWorkspace scope={scope} groupName={groupName} />;
+export function CalendarClient({ scope, groupName, groupId }: CalendarClientProps) {
+  return <CalendarWorkspace scope={scope} groupName={groupName} groupId={groupId} />;
 }

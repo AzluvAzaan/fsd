@@ -94,17 +94,19 @@ export default function GroupDetailPage() {
   const accent = ACCENTS[accentIndex];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      {/* Back arrow */}
+      <Link
+        href="/app/groups"
+        className="inline-flex items-center justify-center size-10 rounded-full border border-border hover:bg-muted transition-colors"
+        aria-label="Back to groups"
+      >
+        <ArrowLeft className="size-4" />
+      </Link>
+
       {/* Header */}
       <div className="flex flex-col gap-5 rounded-[2rem] border border-border/70 bg-card/90 p-8 shadow-sm sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-3">
-          <Link
-            href="/app/groups"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="size-3.5" />
-            All groups
-          </Link>
           <div className={`h-1.5 w-20 rounded-full bg-gradient-to-r ${accent}`} />
           <h1 className="text-3xl font-semibold tracking-tight sm:text-[2.1rem]">{group.name}</h1>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">

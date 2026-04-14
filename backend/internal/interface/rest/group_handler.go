@@ -62,6 +62,28 @@ func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request) {
 	response.Created(w, g)
 }
 
+// GetGroup returns a single group by its ID.
+// GET /groups/{groupId}
+func (h *GroupHandler) GetGroup(w http.ResponseWriter, r *http.Request) {
+	groupID := r.PathValue("groupId")
+	if groupID == "" {
+		response.Error(w, http.StatusBadRequest, "groupId is required")
+		return
+	}
+
+	g, err := h.groupService.GetGroup(r.Context(), groupID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			response.Error(w, http.StatusNotFound, "group not found")
+		} else {
+			response.Error(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+
+	response.Success(w, g)
+}
+
 // JoinGroup adds the authenticated user to a group via invite code.
 // POST /groups/join?code=...
 func (h *GroupHandler) JoinGroup(w http.ResponseWriter, r *http.Request) {

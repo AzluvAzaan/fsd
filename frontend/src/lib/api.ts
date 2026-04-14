@@ -41,6 +41,13 @@ export type ApiGroup = {
   createdAt: string;
 };
 
+export type ApiGroupMember = {
+  id: string;
+  groupId: string;
+  userId: string;
+  joinedAt: string;
+};
+
 export type ApiNotification = {
   id: string;
   userId: string;
@@ -121,6 +128,14 @@ export async function getCalendar(from?: string, to?: string): Promise<CalendarV
 
 export async function getGroups(): Promise<ApiGroup[]> {
   return apiFetch<ApiGroup[]>("/groups");
+}
+
+export async function getGroupById(id: string): Promise<ApiGroup> {
+  return apiFetch<ApiGroup>(`/groups/${id}`);
+}
+
+export async function getGroupMembers(groupId: string): Promise<ApiGroupMember[]> {
+  return apiFetch<ApiGroupMember[]>(`/groups/${groupId}/members`);
 }
 
 export async function createGroup(name: string): Promise<ApiGroup> {

@@ -9,7 +9,7 @@ import { availabilitySlots } from "@/lib/constants/mock-data";
 import { cn } from "@/lib/utils";
 
 type AvailabilityPlannerProps = {
-  groupName: string;
+  groupName?: string;
 };
 
 const durations = ["30 min", "60 min", "90 min"] as const;
@@ -42,7 +42,7 @@ export function AvailabilityPlanner({ groupName }: AvailabilityPlannerProps) {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Shared free slots"
-        title={`${groupName} availability`}
+        title={`${groupName ?? "Group"} availability`}
         description="Find shared free windows across the group's schedule. Set a range, pick a duration, and narrow by participant count."
       />
 

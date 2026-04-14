@@ -33,6 +33,7 @@ func NewRouter(
 	mux.HandleFunc("POST /groups", middleware.Auth(groupHandler.CreateGroup))
 	mux.HandleFunc("POST /groups/join", middleware.Auth(groupHandler.JoinGroup))
 	mux.HandleFunc("GET /groups", middleware.Auth(groupHandler.ListGroups))
+	mux.HandleFunc("GET /groups/{groupId}", middleware.Auth(groupHandler.GetGroup))
 	mux.HandleFunc("GET /groups/{groupId}/members", middleware.Auth(groupHandler.ListMembers))
 	mux.HandleFunc("DELETE /groups/{groupId}", middleware.Auth(groupHandler.DeleteGroup))
 

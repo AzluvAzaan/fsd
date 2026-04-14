@@ -104,6 +104,11 @@ func (s *Service) JoinByInvite(ctx context.Context, inviteCode, userID string) e
 	return nil
 }
 
+// GetGroup returns a single group by ID.
+func (s *Service) GetGroup(ctx context.Context, groupID string) (*domaingroup.Group, error) {
+	return s.groups.FindByID(ctx, groupID)
+}
+
 // ListUserGroups returns all groups a user belongs to.
 func (s *Service) ListUserGroups(ctx context.Context, userID string) ([]*domaingroup.Group, error) {
 	return s.groups.ListByUser(ctx, userID)

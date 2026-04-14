@@ -1,12 +1,18 @@
-import { notFound } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 
 import { AvailabilityPlanner } from "@/components/availability/availability-planner";
-import { groups } from "@/lib/constants/mock-data";
+import { getGroupById, type ApiGroup } from "@/lib/api";
 
-export default async function GroupAvailabilityPage({ params }: { params: Promise<{ groupId: string }> }) {
-  const { groupId } = await params;
-  const group = groups.find((item) => item.id === groupId);
-  if (!group) notFound();
+export default function GroupAvailabilityPage() {
+  const { groupId } = useParams<{ groupId: string }>();
+  const [group, setGroup] = useState<ApiGroup | null>(null);
 
-  return <AvailabilityPlanner groupName={group.name} />;
+  useEffect(() => {
+    getGroupById(groupId).then(setGroup).catch(() => null);
+  }, [groupId]);
+
+  return <AvailabilityPlanner groupName={group?.name} />;
 }

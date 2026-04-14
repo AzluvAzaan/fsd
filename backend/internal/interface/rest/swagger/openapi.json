@@ -414,6 +414,33 @@
       }
     },
     "/groups/{groupId}": {
+      "get": {
+        "tags": ["Groups"],
+        "summary": "Get a group by ID",
+        "operationId": "getGroup",
+        "security": [{ "DevUserID": [] }],
+        "parameters": [
+          { "name": "groupId", "in": "path", "required": true, "schema": { "type": "string" }, "example": "grp-abc123" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Group details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data":  { "$ref": "#/components/schemas/Group" },
+                    "error": { "nullable": true, "example": null }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Group not found" }
+        }
+      },
       "delete": {
         "tags": ["Groups"],
         "summary": "Delete a group",

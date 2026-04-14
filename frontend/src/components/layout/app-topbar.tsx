@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Bell, LogOut, Menu, Search, Settings2 } from "lucide-react";
 
 import { ThemeToggle } from "@/components/shared/theme-toggle";
@@ -14,15 +14,11 @@ type AppTopbarProps = {
 
 export function AppTopbar({ onToggleSidebar }: AppTopbarProps) {
   const router = useRouter();
-  const [user, setUser] = useState<StoredUser | null>(null);
-
-  useEffect(() => {
-    setUser(getStoredUser());
-  }, []);
+  const [user] = useState<StoredUser | null>(() => getStoredUser());
 
   function handleLogout() {
     clearStoredUser();
-    router.push("/login");
+    router.push("/");
   }
 
   const initials = user?.displayName

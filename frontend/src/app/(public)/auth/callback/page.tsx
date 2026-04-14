@@ -15,10 +15,27 @@ function CallbackHandler() {
     const email = params.get("email") ?? "";
 
     if (userId) {
-      setStoredUser({ id: userId, email, displayName });
+      const user = { id: userId, email, displayName };
+
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(
+          { type: "syncup-google-auth-success", payload: user },
+          window.location.origin,
+        );
+        window.close();
+        return;
+      }
+
+      setStoredUser(user);
       router.replace("/app/calendar");
     } else {
-      router.replace("/login?error=auth_failed");
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage({ type: "syncup-google-auth-error" }, window.location.origin);
+        window.close();
+        return;
+      }
+
+      router.replace("/?error=auth_failed");
     }
   }, [params, router]);
 

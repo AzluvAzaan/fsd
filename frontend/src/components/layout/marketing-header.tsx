@@ -2,30 +2,21 @@ import Link from "next/link";
 
 import { AppLogo } from "@/components/layout/app-logo";
 
-type MarketingHeaderProps = {
-  hideLoginButton?: boolean;
-};
-
-export function MarketingHeader({ hideLoginButton = false }: MarketingHeaderProps) {
+export function MarketingHeader() {
   return (
-    <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <Link href="/" className="flex items-center gap-3">
-          <AppLogo size={52} priority />
+        <Link href="/" className="group flex items-center gap-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm transition group-hover:-translate-y-0.5">
+            <AppLogo size={56} priority />
+          </div>
           <div>
-            <p className="text-2xl font-semibold tracking-tight text-purple-600">SyncUp</p>
+            <p className="text-2xl font-semibold tracking-tight text-slate-900">SyncUp</p>
+            <p className="-mt-0.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+              Free Slot Detector
+            </p>
           </div>
         </Link>
-        <nav className="flex items-center gap-4 text-sm">
-          {!hideLoginButton && (
-            <Link
-              href="/login"
-              className="inline-flex rounded-full bg-primary px-5 py-2.5 font-medium text-primary-foreground shadow-sm shadow-primary/25 transition hover:opacity-90"
-            >
-              Log in
-            </Link>
-          )}
-        </nav>
       </div>
     </header>
   );

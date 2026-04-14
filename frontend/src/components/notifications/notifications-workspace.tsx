@@ -5,8 +5,7 @@ import { CheckCheck, ChevronDown } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { getNotifications, markNotificationRead, type ApiNotification } from "@/lib/api";
-import { notifications as mockNotifications, type NotificationItem } from "@/lib/constants/mock-data";
-import { getStoredUser } from "@/lib/auth";
+import { type NotificationItem } from "@/lib/constants/mock-data";
 import { cn } from "@/lib/utils";
 
 type Filter = "all" | "unread";
@@ -44,53 +43,38 @@ function apiNotifToUINotif(n: ApiNotification): NotificationItem {
 }
 
 export function NotificationsWorkspace() {
-  const isLoggedIn = !!getStoredUser();
-
-  const [mockItems, setMockItems] = useState<NotificationItem[]>(mockNotifications);
-  const [liveItems, setLiveItems] = useState<NotificationItem[] | null>(null);
-  const [loading, setLoading] = useState(isLoggedIn);
+  const [items, setItems] = useState<NotificationItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [filter, setFilter] = useState<Filter>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isLoggedIn) return;
     getNotifications()
       .then((data) => {
         const mapped = data.map(apiNotifToUINotif);
-        setLiveItems(mapped);
+        setItems(mapped);
         setExpandedId(mapped[0]?.id ?? null);
       })
       .finally(() => setLoading(false));
-  }, [isLoggedIn]);
+  }, []);
 
-  const items = isLoggedIn ? (liveItems ?? []) : mockItems;
   const filteredItems = items.filter((item) => filter === "all" || item.unread);
   const unreadCount = items.filter((item) => item.unread).length;
 
   const markRead = async (id: string) => {
-    if (isLoggedIn) {
-      try {
-        await markNotificationRead(id);
-      } catch {
-        // best-effort; update UI regardless
-      }
-      setLiveItems((current) =>
-        current ? current.map((item) => (item.id === id ? { ...item, unread: false } : item)) : current,
-      );
-    } else {
-      setMockItems((current) => current.map((item) => (item.id === id ? { ...item, unread: false } : item)));
+    try {
+      await markNotificationRead(id);
+    } catch {
+      // best-effort; update UI regardless
     }
+    setItems((current) => current.map((item) => (item.id === id ? { ...item, unread: false } : item)));
   };
 
   const markAllRead = async () => {
-    if (isLoggedIn) {
-      const unread = (liveItems ?? []).filter((n) => n.unread);
-      await Promise.allSettled(unread.map((n) => markNotificationRead(n.id)));
-      setLiveItems((current) => current ? current.map((item) => ({ ...item, unread: false })) : current);
-    } else {
-      setMockItems((current) => current.map((item) => ({ ...item, unread: false })));
-    }
+    const unread = items.filter((n) => n.unread);
+    await Promise.allSettled(unread.map((n) => markNotificationRead(n.id)));
+    setItems((current) => current.map((item) => ({ ...item, unread: false })));
   };
 
   const toggleExpand = (id: string) => {

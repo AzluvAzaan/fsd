@@ -1,12 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, RefreshCw, Clock, Plug } from "lucide-react";
+import { CheckCircle2, Clock, Plug } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { SectionCard } from "@/components/shared/section-card";
-import { syncGoogleCalendar } from "@/lib/api";
-import { getStoredUser } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 type SyncState = "idle" | "syncing" | "done" | "error";
@@ -19,60 +17,39 @@ type Integration = {
   connected: boolean;
 };
 
-function buildIntegrations(isLoggedIn: boolean): Integration[] {
-  return [
-    {
-      id: "google-calendar",
-      name: "Google Calendar",
-      description:
-        "Primary sync source for pulling your busy slots and publishing accepted events back to your calendar.",
-      status: isLoggedIn ? "Connected" : "Not connected",
-      connected: isLoggedIn,
-    },
-    {
-      id: "google-signin",
-      name: "Google Sign-In",
-      description:
-        "Powers account login and session onboarding. Your identity is verified through your Google account.",
-      status: isLoggedIn ? "Authorized" : "Not authorized",
-      connected: isLoggedIn,
-    },
-    {
-      id: "text-parser",
-      name: "Quick Add Parser",
-      description:
-        "Natural language event creation — type something like \"team lunch Friday 1pm\" and it creates the event.",
-      status: "Coming soon",
-      connected: false,
-    },
-  ];
-}
+const INTEGRATIONS: Integration[] = [
+  {
+    id: "google-calendar",
+    name: "Google Calendar",
+    description:
+      "Primary sync source for pulling your busy slots and publishing accepted events back to your calendar. Use the sync button on the Calendar page to pull in your latest events.",
+    status: "Connected",
+    connected: true,
+  },
+  {
+    id: "google-signin",
+    name: "Google Sign-In",
+    description:
+      "Powers account login and session onboarding. Your identity is verified through your Google account.",
+    status: "Authorized",
+    connected: true,
+  },
+  {
+    id: "text-parser",
+    name: "Quick Add Parser",
+    description:
+      "Natural language event creation — type something like \"team lunch Friday 1pm\" and it creates the event.",
+    status: "Coming soon",
+    connected: false,
+  },
+];
 
 export function IntegrationsWorkspace() {
-  const isLoggedIn = !!getStoredUser();
-  const integrations = buildIntegrations(isLoggedIn);
+  const [activeId, setActiveId] = useState(INTEGRATIONS[0]?.id ?? "");
 
-  const [activeId, setActiveId] = useState(integrations[0]?.id ?? "");
-  const [syncState, setSyncState] = useState<SyncState>("idle");
-  const [lastSyncCount, setLastSyncCount] = useState<number | null>(null);
-  const [syncError, setSyncError] = useState<string | null>(null);
-
+  const integrations = INTEGRATIONS;
   const active = integrations.find((i) => i.id === activeId) ?? integrations[0];
   const connectedCount = integrations.filter((i) => i.connected).length;
-
-  async function handleSync() {
-    if (!isLoggedIn || syncState === "syncing") return;
-    setSyncState("syncing");
-    setSyncError(null);
-    try {
-      const result = await syncGoogleCalendar();
-      setLastSyncCount(result.synced);
-      setSyncState("done");
-    } catch (err) {
-      setSyncError(err instanceof Error ? err.message : "Sync failed");
-      setSyncState("error");
-    }
-  }
 
   return (
     <div className="space-y-6">
@@ -159,37 +136,16 @@ export function IntegrationsWorkspace() {
                   </div>
                 </div>
 
-                {/* Google Calendar sync action */}
-                {active.id === "google-calendar" && isLoggedIn && (
+                {active.id === "google-calendar" && (
                   <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
-                    <p className="text-sm font-medium text-muted-foreground">Sync calendar</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Pull your latest events from Google Calendar into Free Slot Detector.
+                    <p className="text-sm font-medium text-muted-foreground">Syncing</p>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Use the sync button on your Calendar page to pull in the latest events from Google Calendar.
                     </p>
-
-                    {syncState === "done" && lastSyncCount !== null && (
-                      <p className="mt-2 text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                        Synced {lastSyncCount} event{lastSyncCount === 1 ? "" : "s"} successfully.
-                      </p>
-                    )}
-                    {syncState === "error" && syncError && (
-                      <p className="mt-2 text-sm text-destructive">{syncError}</p>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={handleSync}
-                      disabled={syncState === "syncing"}
-                      className="mt-4 flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
-                    >
-                      <RefreshCw className={cn("size-4", syncState === "syncing" && "animate-spin")} />
-                      {syncState === "syncing" ? "Syncing…" : syncState === "done" ? "Sync again" : "Sync now"}
-                    </button>
                   </div>
                 )}
 
-                {/* Google Sign-In — already authorized */}
-                {active.id === "google-signin" && isLoggedIn && (
+                {active.id === "google-signin" && (
                   <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
                     <p className="text-sm font-medium text-muted-foreground">Session</p>
                     <p className="mt-2 text-sm text-muted-foreground">
@@ -198,16 +154,11 @@ export function IntegrationsWorkspace() {
                   </div>
                 )}
 
-                {/* Not connected / coming soon states */}
                 {!active.connected && (
                   <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      {active.id === "text-parser" ? "Availability" : "Action"}
-                    </p>
+                    <p className="text-sm font-medium text-muted-foreground">Availability</p>
                     <p className="mt-2 text-sm text-muted-foreground">
-                      {active.id === "text-parser"
-                        ? "The quick-add parser is planned for a future release."
-                        : "Sign in with Google on the login page to connect this integration."}
+                      The quick-add parser is planned for a future release.
                     </p>
                   </div>
                 )}

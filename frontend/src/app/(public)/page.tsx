@@ -62,12 +62,6 @@ export default function LandingPage() {
                 >
                   Get started
                 </Link>
-                <Link
-                  href="/app/calendar"
-                  className="inline-flex rounded-full border border-border bg-background px-7 py-3.5 font-medium transition hover:bg-muted"
-                >
-                  Dev mode
-                </Link>
               </div>
             </div>
 

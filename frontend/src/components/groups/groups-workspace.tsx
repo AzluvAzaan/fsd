@@ -7,8 +7,7 @@ import { Plus, Users } from "lucide-react";
 import { Modal } from "@/components/shared/modal";
 import { PageHeader } from "@/components/shared/page-header";
 import { createGroup, getGroups, joinGroup, type ApiGroup } from "@/lib/api";
-import { groups as mockGroups, type Group } from "@/lib/constants/mock-data";
-import { getStoredUser } from "@/lib/auth";
+import { type Group } from "@/lib/constants/mock-data";
 import { cn } from "@/lib/utils";
 
 type ModalMode = "create" | "join" | null;
@@ -35,14 +34,8 @@ function apiGroupToUIGroup(g: ApiGroup, index: number): Group {
 }
 
 export function GroupsWorkspace() {
-  const isLoggedIn = !!getStoredUser();
-
-  // Dev mode: static mock state
-  const [mockItems, setMockItems] = useState<Group[]>(mockGroups);
-
-  // Live mode: fetched groups
-  const [liveItems, setLiveItems] = useState<Group[] | null>(null);
-  const [loading, setLoading] = useState(isLoggedIn);
+  const [items, setItems] = useState<Group[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [modalMode, setModalMode] = useState<ModalMode>(null);
@@ -52,42 +45,19 @@ export function GroupsWorkspace() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!isLoggedIn) return;
     getGroups()
-      .then((data) => setLiveItems(data.map(apiGroupToUIGroup)))
+      .then((data) => setItems(data.map(apiGroupToUIGroup)))
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [isLoggedIn]);
-
-  const items = isLoggedIn ? (liveItems ?? []) : mockItems;
+  }, []);
 
   const handleCreateGroup = async () => {
     if (!groupName.trim()) return;
-
-    if (!isLoggedIn) {
-      // Dev mode: local state only
-      const id = groupName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-");
-      const nextGroup: Group = {
-        id,
-        name: groupName.trim(),
-        description: groupDescription.trim() || "New coordination group.",
-        members: 1,
-        role: "Owner",
-        nextWindow: "Best overlap: Set after invites",
-        accent: "from-violet-500 to-indigo-500",
-      };
-      setMockItems([nextGroup, ...mockItems]);
-      setGroupName("");
-      setGroupDescription("");
-      setModalMode(null);
-      return;
-    }
-
     setSubmitting(true);
     try {
       const created = await createGroup(groupName.trim());
-      const uiGroup = apiGroupToUIGroup(created, liveItems?.length ?? 0);
-      setLiveItems((prev) => [uiGroup, ...(prev ?? [])]);
+      const uiGroup = apiGroupToUIGroup(created, items.length);
+      setItems((prev) => [uiGroup, ...prev]);
       setGroupName("");
       setGroupDescription("");
       setModalMode(null);
@@ -101,32 +71,11 @@ export function GroupsWorkspace() {
   const handleJoinGroup = async () => {
     const code = inviteCode.trim();
     if (!code) return;
-
-    if (!isLoggedIn) {
-      // Dev mode: local state only
-      const joinedGroup: Group = {
-        id: code.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "invite-group",
-        name: `Invite ${code.toUpperCase()}`,
-        description: "Joined via invite code.",
-        members: 4,
-        role: "Member",
-        nextWindow: "Best overlap: Fri 3:00 PM",
-        accent: "from-indigo-500 to-sky-500",
-      };
-      if (!mockItems.find((g) => g.id === joinedGroup.id)) {
-        setMockItems([joinedGroup, ...mockItems]);
-      }
-      setInviteCode("");
-      setModalMode(null);
-      return;
-    }
-
     setSubmitting(true);
     try {
       await joinGroup(code);
-      // Refresh list
       const data = await getGroups();
-      setLiveItems(data.map(apiGroupToUIGroup));
+      setItems(data.map(apiGroupToUIGroup));
       setInviteCode("");
       setModalMode(null);
     } catch (err) {
@@ -211,17 +160,6 @@ export function GroupsWorkspace() {
               autoFocus
             />
           </label>
-          {!isLoggedIn && (
-            <label className="block">
-              <span className="text-sm font-medium">Description</span>
-              <textarea
-                value={groupDescription}
-                onChange={(e) => setGroupDescription(e.target.value)}
-                className="mt-2 min-h-24 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary/50 resize-none"
-                placeholder="Describe what this group coordinates."
-              />
-            </label>
-          )}
           <div className="flex justify-end gap-3 pt-1">
             <button
               type="button"

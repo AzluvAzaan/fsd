@@ -14,14 +14,11 @@ export function MarketingHeader() {
           </div>
         </Link>
         <nav className="flex items-center gap-4 text-sm">
-          <Link href="/login" className="font-medium text-muted-foreground transition hover:text-foreground">
-            Log in
-          </Link>
           <Link
-            href="/app/calendar"
-            className="inline-flex rounded-full border border-border bg-background px-5 py-2.5 font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            href="/login"
+            className="inline-flex rounded-full bg-primary px-5 py-2.5 font-medium text-primary-foreground shadow-sm shadow-primary/25 transition hover:opacity-90"
           >
-            Dev mode
+            Log in
           </Link>
         </nav>
       </div>

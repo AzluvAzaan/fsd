@@ -59,12 +59,6 @@ export function AppTopbar({ onToggleSidebar }: AppTopbarProps) {
 
         {/* Right: actions */}
         <div className="flex shrink-0 items-center gap-2">
-          {!user && (
-            <span className="hidden items-center gap-1.5 rounded-full border border-amber-300/50 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:border-amber-700/30 dark:bg-amber-950/40 dark:text-amber-400 sm:flex">
-              <span className="size-1.5 animate-pulse rounded-full bg-amber-500 dark:bg-amber-400" />
-              Dev mode
-            </span>
-          )}
           <Link
             href="/app/notifications"
             className="inline-flex size-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground"
@@ -100,22 +94,7 @@ export function AppTopbar({ onToggleSidebar }: AppTopbarProps) {
                 <LogOut className="size-3.5" />
               </button>
             </div>
-          ) : (
-            /* Dev mode: no user stored */
-            <div className="flex items-center gap-2.5 rounded-full border border-border bg-card px-2 py-1.5 shadow-sm">
-              <div className="grid size-8 place-items-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-sm font-semibold text-white">
-                D
-              </div>
-              <div className="pr-2 leading-tight">
-                <p className="text-sm font-medium">Dev user</p>
-                <p className="text-xs text-muted-foreground">
-                  <Link href="/login" className="hover:underline">
-                    Sign in
-                  </Link>
-                </p>
-              </div>
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
     </header>

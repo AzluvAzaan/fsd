@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
@@ -59,18 +58,6 @@ function LoginCard() {
         </a>
       </div>
 
-      <div className="mt-8 border-t border-border/60 pt-6">
-        <p className="text-xs text-muted-foreground">
-          Building or testing?{" "}
-          <Link
-            href="/app/calendar"
-            className="font-medium text-primary hover:underline"
-          >
-            Enter dev mode
-          </Link>{" "}
-          to skip auth and open the workspace directly.
-        </p>
-      </div>
     </SectionCard>
   );
 }

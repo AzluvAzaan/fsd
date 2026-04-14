@@ -1,13 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppTopbar } from "@/components/layout/app-topbar";
+import { clearStoredUser, getStoredUser } from "@/lib/auth";
+import { getUserById } from "@/lib/api";
 
 export function WorkspaceShell({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [verified, setVerified] = useState(false);
+
+  useEffect(() => {
+    const user = getStoredUser();
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
+
+    getUserById(user.id)
+      .then(() => setVerified(true))
+      .catch(() => {
+        clearStoredUser();
+        router.replace("/login");
+      });
+  }, [router]);
+
+  if (!verified) return null;
 
   return (
     <div className="min-h-screen bg-background text-foreground">

@@ -12,13 +12,25 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Clock3, Layers3, RefreshCw, Spark
 import { PageHeader } from "@/components/shared/page-header";
 import { SectionCard } from "@/components/shared/section-card";
 import { buttonVariants } from "@/components/ui/button";
-import { getCalendar, getGroupAvailability, getGroupCalendar, getGroupMembers, getUserById, syncGoogleCalendar } from "@/lib/api";
+import { getCalendar, getGroupCalendar, getGroupMembers, getUserById, syncGoogleCalendar } from "@/lib/api";
 import { cn } from "@/lib/utils";
+
+export type CalendarRecommendedSlot = {
+  id: string;
+  startAt: string;
+  endAt: string;
+};
 
 type CalendarWorkspaceProps = {
   scope?: "personal" | "group";
   groupName?: string;
   groupId?: string;
+  selectedUserIds?: string[];
+  recommendedSlots?: CalendarRecommendedSlot[];
+  selectedRecommendedSlotId?: string;
+  onRecommendedSlotSelect?: (slotId: string) => void;
+  hideGroupInsights?: boolean;
+  hideGroupHeader?: boolean;
 };
 
 type CalendarEvent = {
@@ -214,7 +226,17 @@ function toEventInput(event: CalendarEvent): EventInput {
 
 type SyncState = "idle" | "syncing" | "done" | "error";
 
-export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core", groupId }: CalendarWorkspaceProps) {
+export function CalendarWorkspace({
+  scope = "personal",
+  groupName = "FSD Core",
+  groupId,
+  selectedUserIds,
+  recommendedSlots = [],
+  selectedRecommendedSlotId,
+  onRecommendedSlotSelect,
+  hideGroupInsights = false,
+  hideGroupHeader = false,
+}: CalendarWorkspaceProps) {
   const calendarRef = useRef<FullCalendar | null>(null);
   const [viewMode, setViewMode] = useState<"week" | "month">("week");
 
@@ -264,10 +286,33 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core", 
     return map;
   }, [compositeGroupEvents]);
 
+  const selectedUserIdsKey = useMemo(
+    () => [...new Set(selectedUserIds ?? [])].sort().join(","),
+    [selectedUserIds],
+  );
+
+  const recommendedCalendarEvents = useMemo(
+    () =>
+      recommendedSlots
+        .filter((slot) => slot.startAt && slot.endAt)
+        .map<EventInput>((slot) => ({
+          id: `recommended-${slot.id}`,
+          title: "",
+          start: slot.startAt,
+          end: slot.endAt,
+          classNames: ["fc-recommended-slot-event", selectedRecommendedSlotId === slot.id ? "is-selected" : ""],
+          extendedProps: {
+            isRecommendation: true,
+            recommendationId: slot.id,
+          },
+        })),
+    [recommendedSlots, selectedRecommendedSlotId],
+  );
+
   const events = scope === "personal" ? personalEvents : groupEvents;
   const calendarFeedEvents = scope === "personal"
     ? events.map(toEventInput)
-    : compositeGroupEvents.map(toCompositeEventInput);
+    : [...compositeGroupEvents.map(toCompositeEventInput), ...recommendedCalendarEvents];
 
   const todayKey = getDateKey(new Date());
   const [calendarTitle, setCalendarTitle] = useState("");
@@ -309,11 +354,12 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core", 
   useEffect(() => {
     if (scope !== "group" || !groupId) return;
 
+    const activeGroupId = groupId;
     let active = true;
 
     async function loadGroupData() {
       try {
-        const members = await getGroupMembers(groupId);
+        const members = await getGroupMembers(activeGroupId);
         const memberUsers = await Promise.all(
           members.map(async (member) => {
             try {
@@ -334,17 +380,21 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core", 
           };
         });
 
-        const userIds = normalizedMembers.map((member) => member.userId);
-        const [groupCalendar, availability] = await Promise.all([
-          userIds.length > 0
-            ? getGroupCalendar(groupId, userIds)
-            : Promise.resolve({ busySlots: [] }),
-          getGroupAvailability(groupId),
-        ]);
+        const selectedUsersSet = new Set(
+          selectedUserIdsKey ? selectedUserIdsKey.split(",").filter(Boolean) : [],
+        );
+        const visibleMembers = selectedUsersSet.size > 0
+          ? normalizedMembers.filter((member) => selectedUsersSet.has(member.userId))
+          : normalizedMembers;
+
+        const userIds = visibleMembers.map((member) => member.userId);
+        const groupCalendar = userIds.length > 0
+          ? await getGroupCalendar(activeGroupId, userIds)
+          : { busySlots: [], freeSlots: [] };
 
         if (!active) return;
 
-        const memberNameById = new Map(normalizedMembers.map((member) => [member.userId, member.name]));
+        const memberNameById = new Map(visibleMembers.map((member) => [member.userId, member.name]));
         const normalizedEvents: CalendarEvent[] = (groupCalendar.busySlots ?? []).map((slot, index) => {
           const memberName = memberNameById.get(slot.userId) ?? slot.userId;
           return {
@@ -357,7 +407,7 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core", 
           };
         });
 
-        const normalizedAvailability: AvailabilitySlot[] = (availability.freeSlots ?? []).map((slot, index) => {
+        const normalizedAvailability: AvailabilitySlot[] = (groupCalendar.freeSlots ?? []).map((slot, index) => {
           const start = new Date(slot.startTime);
           const end = new Date(slot.endTime);
           const duration = Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000));
@@ -366,14 +416,14 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core", 
             id: `free-${index}`,
             date: start.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }),
             time: `${start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })} - ${end.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`,
-            confidence: "All members free",
-            participants: normalizedMembers.map((member) => member.name),
-            note: `${normalizedMembers.length} members available for ${duration} minutes.`,
+            confidence: "All selected members free",
+            participants: visibleMembers.map((member) => member.name),
+            note: `${visibleMembers.length} members available for ${duration} minutes.`,
           };
         });
 
         setGroupError(null);
-        setGroupMembers(normalizedMembers);
+        setGroupMembers(visibleMembers);
         setGroupEvents(normalizedEvents);
         setAvailabilitySlots(normalizedAvailability);
       } catch (err) {
@@ -390,7 +440,7 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core", 
     return () => {
       active = false;
     };
-  }, [scope, groupId]);
+  }, [scope, groupId, selectedUserIdsKey]);
 
   async function handleSync() {
     if (syncState === "syncing") return;
@@ -573,7 +623,7 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core", 
             </button>
           </div>
         </div>
-      ) : (
+      ) : hideGroupHeader ? null : (
         <>
           {groupId && (
             <Link
@@ -636,7 +686,7 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core", 
         </div>
       )}
 
-      {scope === "group" && (
+      {scope === "group" && !hideGroupInsights && (
         <div className="grid gap-4 lg:grid-cols-3">
           {summaryCards.map((card) => {
             const Icon = card.icon;
@@ -755,6 +805,16 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core", 
                   if (arg.event.start) {
                     setSelectedDate(getDateKey(arg.event.start));
                   }
+                  const isRecommendation = Boolean(arg.event.extendedProps.isRecommendation);
+                  if (isRecommendation) {
+                    const recommendationId = arg.event.extendedProps.recommendationId as string | undefined;
+                    if (recommendationId) {
+                      onRecommendedSlotSelect?.(recommendationId);
+                    }
+                    setClickedEvent(null);
+                    return;
+                  }
+
                   const rect = arg.el.getBoundingClientRect();
                   const popupWidth = 264;
 
@@ -819,6 +879,11 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core", 
                 }}
                 eventClassNames={() => ["fc-event-shell"]}
                 eventMouseEnter={(arg) => {
+                  if (arg.event.extendedProps.isRecommendation) {
+                    setHoverTooltip(null);
+                    return;
+                  }
+
                   const entries = arg.event.extendedProps.entries as CompositeEntry[];
                   const rect = arg.el.getBoundingClientRect();
                   const tooltipWidth = 230;
@@ -855,6 +920,20 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core", 
                 eventMouseLeave={() => setHoverTooltip(null)}
                 eventContent={(arg: EventContentArg) => {
                   if (scope === "group") {
+                    if (arg.event.extendedProps.isRecommendation) {
+                      const isSelected =
+                        (arg.event.extendedProps.recommendationId as string | undefined) ===
+                        selectedRecommendedSlotId;
+                      return (
+                        <div
+                          className={cn(
+                            "fc-recommended-slot-pill",
+                            isSelected && "is-selected",
+                          )}
+                        />
+                      );
+                    }
+
                     const entries = arg.event.extendedProps.entries as CompositeEntry[];
                     return (
                       <div
@@ -908,7 +987,7 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core", 
         </div>
       </SectionCard>
 
-      {scope === "group" && (
+      {scope === "group" && !hideGroupInsights && (
         <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
           <SectionCard>
             <div className="flex items-start justify-between gap-4">

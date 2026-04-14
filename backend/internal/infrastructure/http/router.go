@@ -51,6 +51,7 @@ func NewRouter(
 	mux.HandleFunc("POST /event-requests", middleware.Auth(eventReqHandler.SendRequest))
 	mux.HandleFunc("POST /event-requests/{requestId}/respond", middleware.Auth(eventReqHandler.Respond))
 	mux.HandleFunc("GET /event-requests/pending", middleware.Auth(eventReqHandler.ListPending))
+	mux.HandleFunc("GET /event-requests/sent", middleware.Auth(eventReqHandler.ListSent))
 
 	// ---- Notifications (UC9) ----
 	mux.HandleFunc("GET /notifications", middleware.Auth(notifHandler.ListNotifications))

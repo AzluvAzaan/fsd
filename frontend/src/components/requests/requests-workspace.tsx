@@ -6,7 +6,12 @@ import { RequestList } from "@/components/requests/request-list";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { SectionCard } from "@/components/shared/section-card";
-import { getEventRequests, respondToEventRequest, type ApiEventRequest } from "@/lib/api";
+import {
+  getEventRequests,
+  getSentEventRequests,
+  respondToEventRequest,
+  type ApiEventRequest,
+} from "@/lib/api";
 import { type RequestItem } from "@/lib/constants/mock-data";
 import { cn } from "@/lib/utils";
 
@@ -23,15 +28,18 @@ function formatProposedTime(start: string, end: string): string {
   return `${datePart} · ${startTime} – ${endTime}`;
 }
 
-function apiRequestToUIRequest(r: ApiEventRequest): RequestItem {
+function apiRequestToUIRequest(
+  r: ApiEventRequest,
+  type: RequestItem["type"],
+): RequestItem {
   return {
     id: r.id,
     title: r.title || "Event request",
-    type: "received", // ListPending only returns requests where current user is recipient
+    type,
     group: r.groupId,
     proposedTime: formatProposedTime(r.proposedStart, r.proposedEnd),
     status: r.status === "rejected" ? "declined" : (r.status as RequestItem["status"]),
-    from: r.senderId,
+    from: type === "sent" ? "You" : r.senderId,
   };
 }
 
@@ -44,9 +52,12 @@ export function RequestsWorkspace() {
   const [selectedRequestId, setSelectedRequestId] = useState("");
 
   useEffect(() => {
-    getEventRequests()
-      .then((data) => {
-        const mapped = data.map(apiRequestToUIRequest);
+    Promise.all([getEventRequests(), getSentEventRequests()])
+      .then(([received, sent]) => {
+        const mapped = [
+          ...received.map((item) => apiRequestToUIRequest(item, "received")),
+          ...sent.map((item) => apiRequestToUIRequest(item, "sent")),
+        ];
         setItems(mapped);
         setSelectedRequestId(mapped[0]?.id ?? "");
       })

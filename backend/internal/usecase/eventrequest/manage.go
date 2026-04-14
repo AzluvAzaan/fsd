@@ -21,7 +21,6 @@ type NotificationSender interface {
 // Service handles UC7 (send event request) and UC8 (respond to event request).
 type Service struct {
 	requests      domainevent.RequestRepository
-	events        domainevent.Repository
 	notifications notification.Repository
 	sender        NotificationSender
 }
@@ -29,13 +28,11 @@ type Service struct {
 // NewService creates a new event-request service.
 func NewService(
 	requests domainevent.RequestRepository,
-	events domainevent.Repository,
 	notifications notification.Repository,
 	sender NotificationSender,
 ) *Service {
 	return &Service{
 		requests:      requests,
-		events:        events,
 		notifications: notifications,
 		sender:        sender,
 	}
@@ -43,12 +40,14 @@ func NewService(
 
 // SendRequestInput carries data for creating an event request.
 type SendRequestInput struct {
-	SenderID     string
-	GroupID      string
-	EventID      string
-	Title        string
-	EventType    string
-	RecipientIDs []string
+	SenderID      string
+	GroupID       string
+	EventID       string
+	Title         string
+	EventType     string
+	ProposedStart time.Time
+	ProposedEnd   time.Time
+	RecipientIDs  []string
 }
 
 // SendRequest creates a pending event request and notifies recipients (UC7).
@@ -56,17 +55,28 @@ func (s *Service) SendRequest(ctx context.Context, in SendRequestInput) (*domain
 	if in.SenderID == "" {
 		return nil, fmt.Errorf("sender id is required")
 	}
-	if in.EventID == "" {
-		return nil, fmt.Errorf("event id is required")
-	}
 	if in.Title == "" {
 		return nil, fmt.Errorf("title is required")
 	}
 	if in.GroupID == "" {
 		return nil, fmt.Errorf("group id is required")
 	}
+	if in.ProposedStart.IsZero() {
+		return nil, fmt.Errorf("proposed start is required")
+	}
+	if in.ProposedEnd.IsZero() {
+		return nil, fmt.Errorf("proposed end is required")
+	}
+	if !in.ProposedEnd.After(in.ProposedStart) {
+		return nil, fmt.Errorf("proposed end must be after proposed start")
+	}
 	if len(in.RecipientIDs) == 0 {
 		return nil, fmt.Errorf("recipient ids are required")
+	}
+
+	eventType := in.EventType
+	if eventType == "" {
+		eventType = "meeting"
 	}
 
 	now := time.Now()
@@ -76,9 +86,9 @@ func (s *Service) SendRequest(ctx context.Context, in SendRequestInput) (*domain
 		GroupID:       in.GroupID,
 		EventID:       in.EventID,
 		Title:         in.Title,
-		Type:          in.EventType,
-		ProposedStart: time.Time{},
-		ProposedEnd:   time.Time{},
+		Type:          eventType,
+		ProposedStart: in.ProposedStart,
+		ProposedEnd:   in.ProposedEnd,
 		Status:        "pending",
 		CreatedAt:     now,
 	}
@@ -172,4 +182,9 @@ func (s *Service) Respond(ctx context.Context, in RespondInput) error {
 // ListPending returns all pending requests for a user (used in UC8 and UC11).
 func (s *Service) ListPending(ctx context.Context, recipientID string) ([]*domainevent.EventRequest, error) {
 	return s.requests.ListPendingByRecipient(ctx, recipientID)
+}
+
+// ListSent returns requests created by a user.
+func (s *Service) ListSent(ctx context.Context, senderID string) ([]*domainevent.EventRequest, error) {
+	return s.requests.ListBySender(ctx, senderID)
 }

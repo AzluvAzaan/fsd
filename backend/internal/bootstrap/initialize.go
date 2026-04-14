@@ -68,7 +68,7 @@ func Initialize(cfg *config.Config) (*App, error) {
 	groupService := group.NewService(groupRepo, userRepo)
 	calendarService := calendar.NewService(eventRepo, groupRepo)
 	eventService := event.NewService(eventRepo, calendarRepo)
-	eventReqService := eventrequest.NewService(eventReqRepo, eventRepo, notifRepo, googleClient)
+	eventReqService := eventrequest.NewService(eventReqRepo, notifRepo, googleClient)
 	notifService := notification.NewService(notifRepo)
 	syncService := synccal.NewService(eventRepo, calendarRepo, googleClient, nil, userRepo) // apple connector: nil until configured
 	textParserService := textparser.NewService(eventRepo, llmClient, calendarRepo)

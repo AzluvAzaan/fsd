@@ -18,10 +18,15 @@ func NewEventRequestPostgresRepo(db *sql.DB) *EventRequestPostgresRepo {
 }
 
 func (r *EventRequestPostgresRepo) CreateRequest(ctx context.Context, req *event.EventRequest) error {
+	var eventID any
+	if req.EventID != "" {
+		eventID = req.EventID
+	}
+
 	_, err := r.db.ExecContext(ctx,
 		`INSERT INTO event_requests (id, sender_id, group_id, event_id, title, type, proposed_start, proposed_end, status, created_at)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-		req.ID, req.SenderID, req.GroupID, req.EventID, req.Title, req.Type, req.ProposedStart, req.ProposedEnd, req.Status, req.CreatedAt,
+		req.ID, req.SenderID, req.GroupID, eventID, req.Title, req.Type, req.ProposedStart, req.ProposedEnd, req.Status, req.CreatedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("create event request: %w", err)
@@ -31,17 +36,19 @@ func (r *EventRequestPostgresRepo) CreateRequest(ctx context.Context, req *event
 
 func (r *EventRequestPostgresRepo) FindRequestByID(ctx context.Context, id string) (*event.EventRequest, error) {
 	req := &event.EventRequest{}
+	var eventID sql.NullString
 	err := r.db.QueryRowContext(ctx,
 		`SELECT id, sender_id, group_id, event_id, title, type, proposed_start, proposed_end, status, created_at
 		 FROM event_requests WHERE id = $1`,
 		id,
-	).Scan(&req.ID, &req.SenderID, &req.GroupID, &req.EventID, &req.Title, &req.Type, &req.ProposedStart, &req.ProposedEnd, &req.Status, &req.CreatedAt)
+	).Scan(&req.ID, &req.SenderID, &req.GroupID, &eventID, &req.Title, &req.Type, &req.ProposedStart, &req.ProposedEnd, &req.Status, &req.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("event request not found: %s", id)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("find event request by id: %w", err)
 	}
+	req.EventID = eventID.String
 	return req, nil
 }
 
@@ -65,13 +72,44 @@ func (r *EventRequestPostgresRepo) ListPendingByRecipient(ctx context.Context, r
 	var out []*event.EventRequest
 	for rows.Next() {
 		req := &event.EventRequest{}
-		if err := rows.Scan(&req.ID, &req.SenderID, &req.GroupID, &req.EventID, &req.Title, &req.Type, &req.ProposedStart, &req.ProposedEnd, &req.Status, &req.CreatedAt); err != nil {
+		var eventID sql.NullString
+		if err := rows.Scan(&req.ID, &req.SenderID, &req.GroupID, &eventID, &req.Title, &req.Type, &req.ProposedStart, &req.ProposedEnd, &req.Status, &req.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan event request: %w", err)
 		}
+		req.EventID = eventID.String
 		out = append(out, req)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate event requests: %w", err)
+	}
+	return out, nil
+}
+
+func (r *EventRequestPostgresRepo) ListBySender(ctx context.Context, senderID string) ([]*event.EventRequest, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT id, sender_id, group_id, event_id, title, type, proposed_start, proposed_end, status, created_at
+		 FROM event_requests
+		 WHERE sender_id = $1
+		 ORDER BY created_at DESC`,
+		senderID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list event requests by sender: %w", err)
+	}
+	defer rows.Close()
+
+	var out []*event.EventRequest
+	for rows.Next() {
+		req := &event.EventRequest{}
+		var eventID sql.NullString
+		if err := rows.Scan(&req.ID, &req.SenderID, &req.GroupID, &eventID, &req.Title, &req.Type, &req.ProposedStart, &req.ProposedEnd, &req.Status, &req.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan sender request: %w", err)
+		}
+		req.EventID = eventID.String
+		out = append(out, req)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate sender requests: %w", err)
 	}
 	return out, nil
 }

@@ -3,6 +3,7 @@ package rest
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/fsd-group/fsd/internal/choreographer"
 	"github.com/fsd-group/fsd/internal/usecase/eventrequest"
@@ -22,11 +23,13 @@ func NewEventRequestHandler(eventReqService *eventrequest.Service, ch *choreogra
 }
 
 type sendEventRequestBody struct {
-	GroupID      string   `json:"groupId"`
-	EventID      string   `json:"eventId"`
-	Title        string   `json:"title"`
-	EventType    string   `json:"eventType"`
-	RecipientIDs []string `json:"recipientIds"`
+	GroupID       string   `json:"groupId"`
+	EventID       string   `json:"eventId,omitempty"`
+	Title         string   `json:"title"`
+	EventType     string   `json:"eventType"`
+	ProposedStart string   `json:"proposedStart"`
+	ProposedEnd   string   `json:"proposedEnd"`
+	RecipientIDs  []string `json:"recipientIds"`
 }
 
 // SendRequest creates a new event request and notifies recipients.
@@ -44,16 +47,29 @@ func (h *EventRequestHandler) SendRequest(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	proposedStart, err := time.Parse(time.RFC3339, req.ProposedStart)
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "invalid proposedStart: expected RFC3339")
+		return
+	}
+	proposedEnd, err := time.Parse(time.RFC3339, req.ProposedEnd)
+	if err != nil {
+		response.Error(w, http.StatusBadRequest, "invalid proposedEnd: expected RFC3339")
+		return
+	}
+
 	created, err := h.eventReqService.SendRequest(r.Context(), eventrequest.SendRequestInput{
-		SenderID:     userID,
-		GroupID:      req.GroupID,
-		EventID:      req.EventID,
-		Title:        req.Title,
-		EventType:    req.EventType,
-		RecipientIDs: req.RecipientIDs,
+		SenderID:      userID,
+		GroupID:       req.GroupID,
+		EventID:       req.EventID,
+		Title:         req.Title,
+		EventType:     req.EventType,
+		ProposedStart: proposedStart,
+		ProposedEnd:   proposedEnd,
+		RecipientIDs:  req.RecipientIDs,
 	})
 	if err != nil {
-		response.Error(w, http.StatusInternalServerError, err.Error())
+		response.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -117,6 +133,29 @@ func (h *EventRequestHandler) ListPending(w http.ResponseWriter, r *http.Request
 	}
 
 	list, err := h.eventReqService.ListPending(r.Context(), userID)
+	if err != nil {
+		response.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if list == nil {
+		response.Success(w, []any{})
+		return
+	}
+
+	response.Success(w, list)
+}
+
+// ListSent returns event requests created by the authenticated user.
+// GET /event-requests/sent
+func (h *EventRequestHandler) ListSent(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		response.Error(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	list, err := h.eventReqService.ListSent(r.Context(), userID)
 	if err != nil {
 		response.Error(w, http.StatusInternalServerError, err.Error())
 		return

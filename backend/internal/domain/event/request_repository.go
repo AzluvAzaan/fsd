@@ -10,6 +10,9 @@ type RequestRepository interface {
 	// ListPendingByRecipient returns all requests where the user hasn't responded yet.
 	ListPendingByRecipient(ctx context.Context, recipientID string) ([]*EventRequest, error)
 
+	// ListBySender returns requests created by senderID.
+	ListBySender(ctx context.Context, senderID string) ([]*EventRequest, error)
+
 	// Respond records a recipient's decision on a request.
 	Respond(ctx context.Context, resp *EventResponse) error
 

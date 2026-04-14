@@ -26,6 +26,14 @@ export type ApiEvent = {
   createdAt: string;
 };
 
+export type CreateManualEventInput = {
+  title: string;
+  eventType: string;
+  startTime: string;
+  endTime: string;
+  groupId?: string;
+};
+
 export type CalendarView = {
   userId: string;
   from: string;
@@ -173,6 +181,13 @@ export async function getGroupAvailability(
   return apiFetch<GroupAvailabilityResponse>(`/groups/${groupId}/availability${query ? `?${query}` : ""}`);
 }
 
+export async function createManualEvent(input: CreateManualEventInput): Promise<ApiEvent> {
+  return apiFetch<ApiEvent>("/events", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 // --- Groups ---
 
 export async function getGroups(): Promise<ApiGroup[]> {
@@ -227,8 +242,31 @@ export type ApiEventRequest = {
   createdAt: string;
 };
 
+export type CreateEventRequestInput = {
+  groupId: string;
+  eventId?: string;
+  title: string;
+  eventType?: string;
+  proposedStart: string;
+  proposedEnd: string;
+  recipientIds: string[];
+};
+
+export async function createEventRequest(
+  input: CreateEventRequestInput,
+): Promise<ApiEventRequest> {
+  return apiFetch<ApiEventRequest>("/event-requests", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 export async function getEventRequests(): Promise<ApiEventRequest[]> {
   return apiFetch<ApiEventRequest[]>("/event-requests/pending");
+}
+
+export async function getSentEventRequests(): Promise<ApiEventRequest[]> {
+  return apiFetch<ApiEventRequest[]>("/event-requests/sent");
 }
 
 export async function respondToEventRequest(

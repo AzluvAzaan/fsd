@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS event_requests (
     id              TEXT        PRIMARY KEY,
     sender_id       TEXT        NOT NULL REFERENCES users(id),
     group_id        TEXT        NOT NULL REFERENCES groups(id),
-    event_id        TEXT        NOT NULL REFERENCES events(id),
+    event_id        TEXT        REFERENCES events(id),
     title           TEXT        NOT NULL DEFAULT '',
     type            TEXT        NOT NULL DEFAULT '',
     proposed_start  TIMESTAMPTZ NOT NULL,

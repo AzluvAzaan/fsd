@@ -44,7 +44,7 @@ export function RequestList({
             <button type="button" onClick={() => onSelect?.(request.id)} className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted">
               View detail
             </button>
-            {request.status === "pending" ? (
+            {request.status === "pending" && request.type === "received" ? (
               <>
                 <button
                   type="button"

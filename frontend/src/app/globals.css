@@ -325,6 +325,27 @@
     padding: 0;
   }
 
+  .fsd-calendar .fc .fc-recommended-slot-pill {
+    display: flex;
+    height: 100%;
+    min-height: 100%;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    border: 1px dashed color-mix(in srgb, var(--primary) 65%, transparent);
+    background: color-mix(in srgb, var(--primary) 16%, transparent);
+    padding: 0.2rem;
+  }
+
+  .fsd-calendar .fc .fc-recommended-slot-pill.is-selected {
+    border-style: solid;
+    border-color: color-mix(in srgb, var(--primary) 90%, transparent);
+    background: color-mix(in srgb, var(--primary) 26%, transparent);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, white 35%, transparent) inset,
+      0 0 0 2px color-mix(in srgb, var(--primary) 45%, transparent);
+  }
+
   .fsd-calendar .fc .fc-event-card {
     display: flex;
     height: 100%;

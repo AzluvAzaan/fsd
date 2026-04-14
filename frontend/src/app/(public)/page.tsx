@@ -57,16 +57,16 @@ export default function LandingPage() {
               </p>
               <div className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both duration-500 delay-500 mt-9 flex flex-wrap gap-3">
                 <Link
-                  href="/app/calendar"
+                  href="/login"
                   className="shimmer-btn inline-flex rounded-full bg-primary px-7 py-3.5 font-medium text-primary-foreground shadow-lg shadow-primary/30 transition hover:opacity-95 hover:shadow-xl hover:shadow-primary/40"
                 >
-                  Open workspace
+                  Get started
                 </Link>
                 <Link
-                  href="/login"
+                  href="/app/calendar"
                   className="inline-flex rounded-full border border-border bg-background px-7 py-3.5 font-medium transition hover:bg-muted"
                 >
-                  Log in
+                  Dev mode
                 </Link>
               </div>
             </div>

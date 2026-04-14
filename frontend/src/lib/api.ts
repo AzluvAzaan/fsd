@@ -1,4 +1,5 @@
 import { env } from "@/lib/env";
+import { getStoredUser } from "@/lib/auth";
 
 export type ApiError = {
   error?: string;
@@ -35,10 +36,12 @@ async function parseResponse<T>(response: Response): Promise<T> {
 }
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const userId = getStoredUser()?.id;
   const response = await fetch(`${env.apiBaseUrl}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
+      ...(userId ? { "X-User-ID": userId } : {}),
       ...(init?.headers ?? {}),
     },
     cache: "no-store",

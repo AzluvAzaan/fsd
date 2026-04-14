@@ -76,7 +76,7 @@ func Initialize(cfg *config.Config) (*App, error) {
 	telegramService := telegram.NewService(eventRepo, textParserService, eventReqService)
 
 	// --- Interface: REST handlers ---
-	authHandler := rest.NewAuthHandler(authService)
+	authHandler := rest.NewAuthHandler(authService, cfg.FrontendURL)
 	groupHandler := rest.NewGroupHandler(groupService)
 	calendarHandler := rest.NewCalendarHandler(calendarService)
 	eventHandler := rest.NewEventHandler(eventService, ch)

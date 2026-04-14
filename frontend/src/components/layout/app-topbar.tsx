@@ -1,15 +1,39 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Menu, Search, Settings2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Bell, LogOut, Menu, Search, Settings2 } from "lucide-react";
 
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { clearStoredUser, getStoredUser, type StoredUser } from "@/lib/auth";
 
 type AppTopbarProps = {
   onToggleSidebar: () => void;
 };
 
 export function AppTopbar({ onToggleSidebar }: AppTopbarProps) {
+  const router = useRouter();
+  const [user, setUser] = useState<StoredUser | null>(null);
+
+  useEffect(() => {
+    setUser(getStoredUser());
+  }, []);
+
+  function handleLogout() {
+    clearStoredUser();
+    router.push("/login");
+  }
+
+  const initials = user?.displayName
+    ? user.displayName
+        .split(" ")
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
+    : "?";
+
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center border-b border-border/70 bg-background/90 px-4 backdrop-blur sm:px-6">
       <div className="flex w-full items-center justify-between gap-3">
@@ -35,10 +59,12 @@ export function AppTopbar({ onToggleSidebar }: AppTopbarProps) {
 
         {/* Right: actions */}
         <div className="flex shrink-0 items-center gap-2">
-          <span className="hidden items-center gap-1.5 rounded-full border border-amber-300/50 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:border-amber-700/30 dark:bg-amber-950/40 dark:text-amber-400 sm:flex">
-            <span className="size-1.5 animate-pulse rounded-full bg-amber-500 dark:bg-amber-400" />
-            Dev mode
-          </span>
+          {!user && (
+            <span className="hidden items-center gap-1.5 rounded-full border border-amber-300/50 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:border-amber-700/30 dark:bg-amber-950/40 dark:text-amber-400 sm:flex">
+              <span className="size-1.5 animate-pulse rounded-full bg-amber-500 dark:bg-amber-400" />
+              Dev mode
+            </span>
+          )}
           <Link
             href="/app/notifications"
             className="inline-flex size-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground"
@@ -54,15 +80,42 @@ export function AppTopbar({ onToggleSidebar }: AppTopbarProps) {
             <Settings2 className="size-4" />
           </Link>
           <ThemeToggle />
-          <div className="flex items-center gap-2.5 rounded-full border border-border bg-card px-2 py-1.5 shadow-sm">
-            <div className="grid size-8 place-items-center rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 text-sm font-semibold text-white">
-              A
+
+          {user ? (
+            /* Logged-in user pill with logout */
+            <div className="flex items-center gap-2.5 rounded-full border border-border bg-card px-2 py-1.5 shadow-sm">
+              <div className="grid size-8 place-items-center rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 text-sm font-semibold text-white">
+                {initials}
+              </div>
+              <div className="pr-1 leading-tight">
+                <p className="text-sm font-medium">{user.displayName}</p>
+                <p className="text-xs text-muted-foreground">{user.email}</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                title="Sign out"
+                className="inline-flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <LogOut className="size-3.5" />
+              </button>
             </div>
-            <div className="pr-2 leading-tight">
-              <p className="text-sm font-medium">Azluv</p>
-              <p className="text-xs text-muted-foreground">Owner</p>
+          ) : (
+            /* Dev mode: no user stored */
+            <div className="flex items-center gap-2.5 rounded-full border border-border bg-card px-2 py-1.5 shadow-sm">
+              <div className="grid size-8 place-items-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-sm font-semibold text-white">
+                D
+              </div>
+              <div className="pr-2 leading-tight">
+                <p className="text-sm font-medium">Dev user</p>
+                <p className="text-xs text-muted-foreground">
+                  <Link href="/login" className="hover:underline">
+                    Sign in
+                  </Link>
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </header>

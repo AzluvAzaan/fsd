@@ -19,9 +19,9 @@ export function MarketingHeader() {
           </Link>
           <Link
             href="/app/calendar"
-            className="shimmer-btn inline-flex rounded-full bg-primary px-5 py-2.5 font-medium text-primary-foreground shadow-lg shadow-primary/25 transition hover:opacity-95"
+            className="inline-flex rounded-full border border-border bg-background px-5 py-2.5 font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
           >
-            Open workspace
+            Dev mode
           </Link>
         </nav>
       </div>

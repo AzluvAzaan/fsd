@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"path/filepath"
+	"sort"
 	"time"
 
 	"github.com/fsd-group/fsd/internal/infrastructure/persistence"
@@ -80,17 +82,31 @@ func main() {
 
 	switch *action {
 	case "migrate":
-		runSQL(ctx, db, "migrations/001_initial_schema.up.sql", "Schema migration")
+		runMigrations(ctx, db)
 	case "seed":
 		runSQL(ctx, db, "migrations/002_seed_data.sql", "Seed data")
 	case "drop":
 		runSQL(ctx, db, "migrations/001_initial_schema.down.sql", "Drop tables")
 	case "reset":
 		runSQL(ctx, db, "migrations/001_initial_schema.down.sql", "Drop tables")
-		runSQL(ctx, db, "migrations/001_initial_schema.up.sql", "Schema migration")
+		runMigrations(ctx, db)
 		runSQL(ctx, db, "migrations/002_seed_data.sql", "Seed data")
 	default:
 		log.Fatalf("unknown action: %s (use: migrate, seed, drop, reset)", *action)
+	}
+}
+
+// runMigrations applies all *.up.sql files in migrations/ in alphabetical order,
+// skipping the seed file (002_seed_data.sql).
+func runMigrations(ctx context.Context, db *sql.DB) {
+	files, err := filepath.Glob("migrations/*.up.sql")
+	if err != nil {
+		log.Fatalf("failed to list migration files: %v", err)
+	}
+	sort.Strings(files)
+
+	for _, f := range files {
+		runSQL(ctx, db, f, filepath.Base(f))
 	}
 }
 

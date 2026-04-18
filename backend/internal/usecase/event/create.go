@@ -75,6 +75,11 @@ func (s *Service) CreateManual(ctx context.Context, in CreateManualInput) (*doma
 	return e, nil
 }
 
+// FindByID returns a single event by ID.
+func (s *Service) FindByID(ctx context.Context, id string) (*domainevent.Event, error) {
+	return s.events.FindByID(ctx, id)
+}
+
 // Update modifies an existing event.
 func (s *Service) Update(ctx context.Context, e *domainevent.Event) error {
 	return s.events.Update(ctx, e)
@@ -83,4 +88,9 @@ func (s *Service) Update(ctx context.Context, e *domainevent.Event) error {
 // Delete removes an event.
 func (s *Service) Delete(ctx context.Context, id string) error {
 	return s.events.Delete(ctx, id)
+}
+
+// UpdateStatusByRequestID promotes or cancels all placeholder events linked to a request.
+func (s *Service) UpdateStatusByRequestID(ctx context.Context, requestID string, status string) error {
+	return s.events.UpdateStatusByRequestID(ctx, requestID, status)
 }

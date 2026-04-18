@@ -19,18 +19,18 @@ func NewEventPostgresRepo(db *sql.DB) *EventPostgresRepo {
 	return &EventPostgresRepo{db: db}
 }
 
-const eventCols = `e.id, e.calendar_id, e.title, e.type, e.start_time, e.end_time, e.status, e.source, e.created_at`
+const eventCols = `e.id, e.calendar_id, e.title, e.type, e.start_time, e.end_time, e.status, e.source, COALESCE(e.request_id::text, ''), e.created_at`
 
 func scanEvent(row interface{ Scan(...any) error }) (*event.Event, error) {
 	e := &event.Event{}
-	return e, row.Scan(&e.ID, &e.CalendarID, &e.Title, &e.Type, &e.StartTime, &e.EndTime, &e.Status, &e.Source, &e.CreatedAt)
+	return e, row.Scan(&e.ID, &e.CalendarID, &e.Title, &e.Type, &e.StartTime, &e.EndTime, &e.Status, &e.Source, &e.RequestID, &e.CreatedAt)
 }
 
 func collectEvents(rows *sql.Rows) ([]*event.Event, error) {
 	var events []*event.Event
 	for rows.Next() {
 		e := &event.Event{}
-		if err := rows.Scan(&e.ID, &e.CalendarID, &e.Title, &e.Type, &e.StartTime, &e.EndTime, &e.Status, &e.Source, &e.CreatedAt); err != nil {
+		if err := rows.Scan(&e.ID, &e.CalendarID, &e.Title, &e.Type, &e.StartTime, &e.EndTime, &e.Status, &e.Source, &e.RequestID, &e.CreatedAt); err != nil {
 			return nil, err
 		}
 		events = append(events, e)
@@ -39,24 +39,32 @@ func collectEvents(rows *sql.Rows) ([]*event.Event, error) {
 }
 
 func (r *EventPostgresRepo) Create(ctx context.Context, e *event.Event) error {
+	var reqID *string
+	if e.RequestID != "" {
+		reqID = &e.RequestID
+	}
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO events (id, calendar_id, title, type, start_time, end_time, status, source, created_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-		e.ID, e.CalendarID, e.Title, e.Type, e.StartTime, e.EndTime, e.Status, e.Source, e.CreatedAt,
+		`INSERT INTO events (id, calendar_id, title, type, start_time, end_time, status, source, request_id, created_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+		e.ID, e.CalendarID, e.Title, e.Type, e.StartTime, e.EndTime, e.Status, e.Source, reqID, e.CreatedAt,
 	)
 	return err
 }
 
 func (r *EventPostgresRepo) Upsert(ctx context.Context, e *event.Event) error {
+	var reqID *string
+	if e.RequestID != "" {
+		reqID = &e.RequestID
+	}
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO events (id, calendar_id, title, type, start_time, end_time, status, source, created_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		`INSERT INTO events (id, calendar_id, title, type, start_time, end_time, status, source, request_id, created_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		 ON CONFLICT (id) DO UPDATE SET
 		     title      = EXCLUDED.title,
 		     start_time = EXCLUDED.start_time,
 		     end_time   = EXCLUDED.end_time,
 		     status     = EXCLUDED.status`,
-		e.ID, e.CalendarID, e.Title, e.Type, e.StartTime, e.EndTime, e.Status, e.Source, e.CreatedAt,
+		e.ID, e.CalendarID, e.Title, e.Type, e.StartTime, e.EndTime, e.Status, e.Source, reqID, e.CreatedAt,
 	)
 	return err
 }
@@ -95,6 +103,7 @@ func (r *EventPostgresRepo) ListByUser(ctx context.Context, userID string, from,
 		 WHERE c.user_id = $1
 		   AND e.start_time >= $2
 		   AND e.end_time   <= $3
+		   AND e.status != 'cancelled'
 		 ORDER BY e.start_time`,
 		userID, from, to,
 	)
@@ -103,6 +112,26 @@ func (r *EventPostgresRepo) ListByUser(ctx context.Context, userID string, from,
 	}
 	defer rows.Close()
 	return collectEvents(rows)
+}
+
+// DeleteByRequestID removes unconfirmed placeholder events linked to a request.
+// Confirmed events (status = 'confirmed') are preserved — they were accepted and
+// belong on the participants' calendars even after the request record is deleted.
+func (r *EventPostgresRepo) DeleteByRequestID(ctx context.Context, requestID string) error {
+	_, err := r.db.ExecContext(ctx,
+		`DELETE FROM events WHERE request_id = $1 AND status != 'confirmed'`,
+		requestID,
+	)
+	return err
+}
+
+// UpdateStatusByRequestID sets the status on every event whose request_id matches.
+func (r *EventPostgresRepo) UpdateStatusByRequestID(ctx context.Context, requestID string, status string) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE events SET status = $1 WHERE request_id = $2`,
+		status, requestID,
+	)
+	return err
 }
 
 // ListByGroup returns events that were created as part of an event request for groupID.

@@ -11,8 +11,9 @@ type Event struct {
 	Type       string    `json:"type"` // e.g. "meeting", "personal"
 	StartTime  time.Time `json:"startTime"`
 	EndTime    time.Time `json:"endTime"`
-	Status     string    `json:"status"` // confirmed, pending, rejected, cancelled
-	Source     string    `json:"source"` // manual, google, apple, telegram, text
+	Status     string    `json:"status"`    // confirmed, pending, rejected, cancelled
+	Source     string    `json:"source"`    // manual, google, apple, telegram, text, request
+	RequestID  string    `json:"requestId"` // set when source=="request"; FK to event_requests.id
 	CreatedAt  time.Time `json:"createdAt"`
 }
 

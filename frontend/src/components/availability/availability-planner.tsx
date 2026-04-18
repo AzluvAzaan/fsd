@@ -32,7 +32,7 @@ type AvailabilityPlannerProps = {
 type PlannerStep = "filters" | "results";
 
 type RangeOption = {
-  id: "this-week" | "next-7-days" | "next-2-weeks";
+  id: "next-7-days" | "next-2-weeks";
   label: string;
 };
 
@@ -44,7 +44,6 @@ type ToastItem = {
 
 const durationOptions = [30, 60, 90] as const;
 const rangeOptions: RangeOption[] = [
-  { id: "this-week", label: "This week" },
   { id: "next-7-days", label: "Next 7 days" },
   { id: "next-2-weeks", label: "Next 2 weeks" },
 ];
@@ -66,28 +65,12 @@ function startOfDay(date: Date): Date {
   return next;
 }
 
-function startOfWeek(date: Date): Date {
-  const next = startOfDay(date);
-  const weekday = next.getDay();
-  const daysSinceMonday = weekday === 0 ? 6 : weekday - 1;
-  next.setDate(next.getDate() - daysSinceMonday);
-  return next;
-}
 
 function getRangeWindow(rangeId: RangeOption["id"]) {
   const now = new Date();
-
-  if (rangeId === "this-week") {
-    const from = startOfWeek(now);
-    const to = new Date(from);
-    to.setDate(to.getDate() + 7);
-    return { from: from.toISOString(), to: to.toISOString() };
-  }
-
   const from = now;
   const to = new Date(now);
   to.setDate(to.getDate() + (rangeId === "next-2-weeks" ? 14 : 7));
-
   return { from: from.toISOString(), to: to.toISOString() };
 }
 
@@ -168,7 +151,7 @@ export function AvailabilityPlanner({
   error = null,
 }: AvailabilityPlannerProps) {
   const [step, setStep] = useState<PlannerStep>("filters");
-  const [selectedRange, setSelectedRange] = useState<RangeOption["id"]>("this-week");
+  const [selectedRange, setSelectedRange] = useState<RangeOption["id"]>("next-7-days");
   const [selectedDuration, setSelectedDuration] = useState<(typeof durationOptions)[number]>(60);
   const [minimumParticipants, setMinimumParticipants] = useState(2);
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
@@ -356,6 +339,8 @@ export function AvailabilityPlanner({
         groupId,
         title: requestTitle.trim(),
         eventType: "meeting",
+        location: requestLocation.trim(),
+        note: requestNote.trim(),
         proposedStart: selectedSlot.startAt,
         proposedEnd: selectedSlot.endAt,
         recipientIds,
@@ -376,7 +361,7 @@ export function AvailabilityPlanner({
   return (
     <div className="space-y-6">
       {toasts.length > 0 ? (
-        <div className="pointer-events-none fixed right-4 top-4 z-[70] flex w-full max-w-sm flex-col gap-2">
+        <div className="pointer-events-none fixed right-4 top-20 z-[70] flex w-full max-w-sm flex-col gap-2">
           {toasts.map((toast) => (
             <div
               key={toast.id}
@@ -588,6 +573,7 @@ export function AvailabilityPlanner({
             onRecommendedSlotSelect={(slotId) => {
               setSelectedSlotId(slotId);
             }}
+            initialDate={slots[0]?.startAt ?? getRangeWindow(selectedRange).from}
             hideGroupInsights
             hideGroupHeader
           />
@@ -685,7 +671,7 @@ export function AvailabilityPlanner({
               </label>
 
               <label className="block space-y-1.5">
-                <span className="text-sm font-medium text-muted-foreground">Planner note</span>
+                <span className="text-sm font-medium text-muted-foreground">Message</span>
                 <textarea
                   value={requestNote}
                   onChange={(event) => setRequestNote(event.target.value)}
@@ -703,12 +689,6 @@ export function AvailabilityPlanner({
                   {selectedMembers.map((member) => member.name).join(", ") || "None"}
                 </p>
               </div>
-
-              {requestLocation || requestNote ? (
-                <p className="text-xs text-muted-foreground">
-                  Additional details are captured in this draft only.
-                </p>
-              ) : null}
 
               <div className="flex justify-end gap-3 pt-2">
                 <button

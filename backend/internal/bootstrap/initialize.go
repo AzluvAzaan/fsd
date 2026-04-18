@@ -57,18 +57,20 @@ func Initialize(cfg *config.Config) (*App, error) {
 	notifRepo := persistence.NewNotificationPostgresRepo(db)
 	calendarRepo := persistence.NewCalendarPostgresRepo(db)
 
+	// --- Use cases that the choreographer depends on must be created first ---
+	eventService := event.NewService(eventRepo, calendarRepo)
+
 	// --- Choreographer (microservice choreography layer) ---
 	// The event bus decouples services: each service publishes domain events;
 	// the choreographer subscribes and triggers cross-service reactions.
 	bus := eventbus.New()
-	ch := choreographer.New(bus)
+	ch := choreographer.New(bus, eventService)
 
-	// --- Use cases ---
+	// --- Remaining use cases ---
 	authService := auth.NewService(userRepo, googleClient)
 	groupService := group.NewService(groupRepo, userRepo)
 	calendarService := calendar.NewService(eventRepo, groupRepo)
-	eventService := event.NewService(eventRepo, calendarRepo)
-	eventReqService := eventrequest.NewService(eventReqRepo, notifRepo, googleClient)
+	eventReqService := eventrequest.NewService(eventReqRepo, notifRepo, googleClient, eventRepo, calendarRepo)
 	notifService := notification.NewService(notifRepo)
 	syncService := synccal.NewService(eventRepo, calendarRepo, googleClient, nil, userRepo) // apple connector: nil until configured
 	textParserService := textparser.NewService(eventRepo, llmClient, calendarRepo)

@@ -18,6 +18,7 @@ type CalendarClientProps = {
   recommendedSlots?: CalendarRecommendedSlot[];
   selectedRecommendedSlotId?: string;
   onRecommendedSlotSelect?: (slotId: string) => void;
+  initialDate?: string;
   hideGroupInsights?: boolean;
   hideGroupHeader?: boolean;
 };
@@ -30,6 +31,7 @@ export function CalendarClient({
   recommendedSlots,
   selectedRecommendedSlotId,
   onRecommendedSlotSelect,
+  initialDate,
   hideGroupInsights,
   hideGroupHeader,
 }: CalendarClientProps) {
@@ -42,6 +44,7 @@ export function CalendarClient({
       recommendedSlots={recommendedSlots}
       selectedRecommendedSlotId={selectedRecommendedSlotId}
       onRecommendedSlotSelect={onRecommendedSlotSelect}
+      initialDate={initialDate}
       hideGroupInsights={hideGroupInsights}
       hideGroupHeader={hideGroupHeader}
     />

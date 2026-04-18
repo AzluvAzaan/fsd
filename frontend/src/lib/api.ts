@@ -23,6 +23,7 @@ export type ApiEvent = {
   endTime: string;
   status: string;
   source: string;
+  requestId: string; // non-empty when source === "request"
   createdAt: string;
 };
 
@@ -188,6 +189,10 @@ export async function createManualEvent(input: CreateManualEventInput): Promise<
   });
 }
 
+export async function deleteEvent(eventId: string): Promise<void> {
+  return apiFetch<void>(`/events/${eventId}`, { method: "DELETE" });
+}
+
 // --- Groups ---
 
 export async function getGroups(): Promise<ApiGroup[]> {
@@ -236,6 +241,8 @@ export type ApiEventRequest = {
   eventId: string;
   title: string;
   type: string;
+  location: string;
+  note: string;
   proposedStart: string;
   proposedEnd: string;
   status: string; // "pending" | "accepted" | "rejected"
@@ -247,6 +254,8 @@ export type CreateEventRequestInput = {
   eventId?: string;
   title: string;
   eventType?: string;
+  location?: string;
+  note?: string;
   proposedStart: string;
   proposedEnd: string;
   recipientIds: string[];
@@ -261,12 +270,20 @@ export async function createEventRequest(
   });
 }
 
+export async function getEventRequestById(id: string): Promise<ApiEventRequest> {
+  return apiFetch<ApiEventRequest>(`/event-requests/${id}`);
+}
+
 export async function getEventRequests(): Promise<ApiEventRequest[]> {
-  return apiFetch<ApiEventRequest[]>("/event-requests/pending");
+  return apiFetch<ApiEventRequest[]>("/event-requests/received");
 }
 
 export async function getSentEventRequests(): Promise<ApiEventRequest[]> {
   return apiFetch<ApiEventRequest[]>("/event-requests/sent");
+}
+
+export async function deleteEventRequest(requestId: string): Promise<void> {
+  return apiFetch<void>(`/event-requests/${requestId}`, { method: "DELETE" });
 }
 
 export async function respondToEventRequest(

@@ -61,7 +61,7 @@ func (s *Service) HandleCallback(ctx context.Context, userID, requestID string, 
 	if accept {
 		decision = "accepted"
 	}
-	err := s.eventReqs.Respond(ctx, eventrequest.RespondInput{
+	_, err := s.eventReqs.Respond(ctx, eventrequest.RespondInput{
 		RequestID:   requestID,
 		RecipientID: userID,
 		Decision:    decision,

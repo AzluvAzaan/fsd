@@ -13,19 +13,23 @@
 package choreographer
 
 import (
+	"context"
 	"fmt"
 
+	eventusecase "github.com/fsd-group/fsd/internal/usecase/event"
 	"github.com/fsd-group/fsd/pkg/eventbus"
 )
 
+
 // Choreographer wires domain events to downstream service reactions.
 type Choreographer struct {
-	bus *eventbus.Bus
+	bus          *eventbus.Bus
+	eventService *eventusecase.Service
 }
 
 // New creates a Choreographer and registers all event subscriptions on bus.
-func New(bus *eventbus.Bus) *Choreographer {
-	c := &Choreographer{bus: bus}
+func New(bus *eventbus.Bus, eventService *eventusecase.Service) *Choreographer {
+	c := &Choreographer{bus: bus, eventService: eventService}
 	c.wire()
 	return c
 }
@@ -45,7 +49,6 @@ func (c *Choreographer) wire() {
 }
 
 // onCalendarSynced reacts to a completed external calendar sync (UC10).
-// Future: invalidate cached personal calendar view, push a notification, etc.
 func (c *Choreographer) onCalendarSynced(e eventbus.Event) {
 	p, ok := e.Payload.(CalendarSyncedPayload)
 	if !ok {
@@ -55,25 +58,36 @@ func (c *Choreographer) onCalendarSynced(e eventbus.Event) {
 		p.UserID, p.Provider, p.Count)
 }
 
-// onEventRequestAccepted reacts when a recipient accepts an event request (UC8/UC9).
-// Future: send Gmail confirmation to all parties, update event status to "confirmed".
+// onEventRequestAccepted reacts when a recipient accepts an event request (UC8).
+// It confirms every placeholder event linked to the request (sender + all recipients).
 func (c *Choreographer) onEventRequestAccepted(e eventbus.Event) {
 	p, ok := e.Payload.(EventRequestResponsePayload)
 	if !ok {
 		return
 	}
-	fmt.Printf("[choreographer] event_request.accepted requestID=%s user=%s",
-		p.RequestID, p.UserID)
+	ctx := context.Background()
+
+	// Promote all placeholder events for this request from "pending" → "confirmed".
+	if err := c.eventService.UpdateStatusByRequestID(ctx, p.RequestID, "confirmed"); err != nil {
+		fmt.Printf("[choreographer] failed to confirm placeholder events request=%s: %v\n",
+			p.RequestID, err)
+	}
 }
 
 // onEventRequestRejected reacts when a recipient rejects an event request (UC8).
+// It cancels every placeholder event linked to the request (sender + all recipients).
 func (c *Choreographer) onEventRequestRejected(e eventbus.Event) {
 	p, ok := e.Payload.(EventRequestResponsePayload)
 	if !ok {
 		return
 	}
-	fmt.Printf("[choreographer] event_request.rejected requestID=%s user=%s",
-		p.RequestID, p.UserID)
+	ctx := context.Background()
+
+	// Cancel all placeholder events for this request.
+	if err := c.eventService.UpdateStatusByRequestID(ctx, p.RequestID, "cancelled"); err != nil {
+		fmt.Printf("[choreographer] failed to cancel placeholder events request=%s: %v\n",
+			p.RequestID, err)
+	}
 }
 
 // onManualEventCreated reacts when a user adds a manual calendar event (UC6).

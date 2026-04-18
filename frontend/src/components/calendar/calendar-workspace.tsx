@@ -9,10 +9,12 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import Link from "next/link";
 import { ArrowLeft, ChevronLeft, ChevronRight, Clock3, Layers3, RefreshCw, Sparkles, X } from "lucide-react";
 
+import { RequestDetailModal } from "@/components/requests/request-detail-modal";
 import { PageHeader } from "@/components/shared/page-header";
 import { SectionCard } from "@/components/shared/section-card";
 import { buttonVariants } from "@/components/ui/button";
-import { getCalendar, getGroupCalendar, getGroupMembers, getUserById, syncGoogleCalendar } from "@/lib/api";
+import { deleteEvent, deleteEventRequest, getCalendar, getEventRequestById, getGroupById, getGroupCalendar, getGroupMembers, getUserById, respondToEventRequest, syncGoogleCalendar, type ApiEventRequest } from "@/lib/api";
+import { getStoredUser } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 export type CalendarRecommendedSlot = {
@@ -29,6 +31,7 @@ type CalendarWorkspaceProps = {
   recommendedSlots?: CalendarRecommendedSlot[];
   selectedRecommendedSlotId?: string;
   onRecommendedSlotSelect?: (slotId: string) => void;
+  initialDate?: string;
   hideGroupInsights?: boolean;
   hideGroupHeader?: boolean;
 };
@@ -41,6 +44,9 @@ type CalendarEvent = {
   tone?: "default" | "highlight" | "muted";
   group?: string;
   memberName?: string;
+  status?: string;
+  source?: string;
+  requestId?: string;
 };
 
 type GroupMemberView = {
@@ -94,6 +100,9 @@ type ClickedEvent = {
   timeRange: string;
   x: number;
   y: number;
+  eventId?: string;   // set for personal events; enables delete
+  source?: string;    // "google" → no delete button shown
+  requestId?: string; // set when source === "request"; deleted together with event
 } | null;
 
 type DayPopup = {
@@ -120,6 +129,7 @@ const eventTimeFormatter = new Intl.DateTimeFormat("en-US", {
 });
 
 const MEMBER_COLORS = ["#7c3aed", "#db2777", "#2563eb", "#059669", "#d97706", "#0ea5e9", "#22c55e"];
+const PENDING_COLOR = "#f59e0b";
 
 const personalCategoryMeta: Record<PersonalEventCategory, { color: string; keywords: string[] }> = {
   Work: {
@@ -208,7 +218,13 @@ function getPersonalEventDetail(event: CalendarEvent): DetailPopupEntry {
 }
 
 function toEventInput(event: CalendarEvent): EventInput {
+  const isPending = event.status === "pending";
   const category = getPersonalEventCategory(event);
+  const accentColor = isPending
+    ? PENDING_COLOR
+    : event.memberName
+    ? undefined
+    : personalCategoryMeta[category].color;
   return {
     id: event.id,
     title: event.title,
@@ -218,8 +234,11 @@ function toEventInput(event: CalendarEvent): EventInput {
       tone: event.tone ?? "default",
       group: event.group,
       memberName: event.memberName,
-      accentColor: event.memberName ? undefined : personalCategoryMeta[category].color,
+      accentColor,
       category,
+      isPending,
+      isRequestPlaceholder: event.source === "request",
+      requestId: event.requestId,
     },
   };
 }
@@ -234,6 +253,7 @@ export function CalendarWorkspace({
   recommendedSlots = [],
   selectedRecommendedSlotId,
   onRecommendedSlotSelect,
+  initialDate,
   hideGroupInsights = false,
   hideGroupHeader = false,
 }: CalendarWorkspaceProps) {
@@ -316,10 +336,18 @@ export function CalendarWorkspace({
 
   const todayKey = getDateKey(new Date());
   const [calendarTitle, setCalendarTitle] = useState("");
-  const [selectedDate, setSelectedDate] = useState(todayKey);
+  const [selectedDate, setSelectedDate] = useState(() =>
+    initialDate ? getDateKey(new Date(initialDate)) : todayKey,
+  );
   const [visibleRange, setVisibleRange] = useState(() => {
-    const now = new Date();
-    const start = new Date(now);
+    // Align to Monday so the initial range matches FullCalendar's timeGridWeek boundary.
+    // When initialDate is provided (e.g. from the availability planner) we seed the range
+    // from that date instead of today so loadGroupData fetches the correct week on mount.
+    const ref = initialDate ? new Date(initialDate) : new Date();
+    const weekday = ref.getDay();
+    const daysSinceMonday = weekday === 0 ? 6 : weekday - 1;
+    const start = new Date(ref);
+    start.setDate(start.getDate() - daysSinceMonday);
     start.setHours(0, 0, 0, 0);
     const end = new Date(start);
     end.setDate(end.getDate() + 7);
@@ -328,9 +356,20 @@ export function CalendarWorkspace({
   const [hoverTooltip, setHoverTooltip] = useState<HoverTooltip>(null);
   const [clickedEvent, setClickedEvent] = useState<ClickedEvent>(null);
   const [dayPopup, setDayPopup] = useState<DayPopup>(null);
+  const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
 
-  const fetchCalendar = useCallback(() => {
-    getCalendar().then((view) => {
+  // Request detail modal (triggered by clicking a pending request calendar event)
+  type RequestModalState = {
+    request: ApiEventRequest;
+    requestType: "received" | "sent";
+    groupName: string;
+    senderName: string;
+  };
+  const [requestModal, setRequestModal] = useState<RequestModalState | null>(null);
+  const [requestModalResponding, setRequestModalResponding] = useState(false);
+
+  const fetchCalendar = useCallback((from?: string, to?: string) => {
+    getCalendar(from, to).then((view) => {
       setPersonalEvents(
         (view.events ?? []).map((e) => ({
           id: e.id,
@@ -338,18 +377,15 @@ export function CalendarWorkspace({
           startAt: e.startTime,
           endAt: e.endTime,
           tone: "default" as const,
+          status: e.status,
+          source: e.source,
+          requestId: e.requestId || undefined,
         })),
       );
     }).catch(() => {
-      // leave events empty — calendar still renders correctly showing current week
+      // leave events empty — calendar still renders correctly
     });
   }, []);
-
-  // Fetch real calendar events on mount (personal scope only)
-  useEffect(() => {
-    if (scope !== "personal") return;
-    fetchCalendar();
-  }, [scope, fetchCalendar]);
 
   useEffect(() => {
     if (scope !== "group" || !groupId) return;
@@ -389,7 +425,12 @@ export function CalendarWorkspace({
 
         const userIds = visibleMembers.map((member) => member.userId);
         const groupCalendar = userIds.length > 0
-          ? await getGroupCalendar(activeGroupId, userIds)
+          ? await getGroupCalendar(
+              activeGroupId,
+              userIds,
+              visibleRange.start.toISOString(),
+              visibleRange.end.toISOString(),
+            )
           : { busySlots: [], freeSlots: [] };
 
         if (!active) return;
@@ -440,7 +481,67 @@ export function CalendarWorkspace({
     return () => {
       active = false;
     };
-  }, [scope, groupId, selectedUserIdsKey]);
+  }, [scope, groupId, selectedUserIdsKey, visibleRange]);
+
+  async function openRequestModal(requestId: string) {
+    try {
+      const req = await getEventRequestById(requestId);
+      const currentUserId = getStoredUser()?.id ?? "";
+      const requestType = req.senderId === currentUserId ? "sent" : "received";
+      const [groupResult, senderResult] = await Promise.allSettled([
+        getGroupById(req.groupId),
+        getUserById(req.senderId),
+      ]);
+      const groupName = groupResult.status === "fulfilled" ? groupResult.value.name : req.groupId;
+      const senderName = requestType === "sent"
+        ? "You"
+        : senderResult.status === "fulfilled"
+        ? (senderResult.value.displayName || senderResult.value.email || req.senderId)
+        : req.senderId;
+      setClickedEvent(null);
+      setHoverTooltip(null);
+      setRequestModal({ request: req, requestType, groupName, senderName });
+    } catch {
+      // If the request can't be loaded, ignore — the event is still visible on the calendar
+    }
+  }
+
+  async function handleRequestModalRespond(decision: "accepted" | "rejected") {
+    if (!requestModal) return;
+    setRequestModalResponding(true);
+    try {
+      await respondToEventRequest(requestModal.request.id, decision);
+      const nextStatus = decision === "accepted" ? "accepted" : "rejected";
+      setRequestModal((prev) =>
+        prev ? { ...prev, request: { ...prev.request, status: nextStatus } } : null,
+      );
+      // Refresh calendar so placeholder event reflects new status
+      fetchCalendar(visibleRange.start.toISOString(), visibleRange.end.toISOString());
+    } catch {
+      // keep modal open; user can retry
+    } finally {
+      setRequestModalResponding(false);
+    }
+  }
+
+  async function handleDeleteEvent(eventId: string) {
+    setDeletingEventId(eventId);
+    try {
+      await deleteEvent(eventId);
+      // If this event was a request placeholder, dismiss the request for this user
+      // so it no longer appears in their inbox (other participants are unaffected).
+      const linkedEvent = personalEvents.find((e) => e.id === eventId);
+      if (linkedEvent?.source === "request" && linkedEvent.requestId) {
+        try { await deleteEventRequest(linkedEvent.requestId); } catch { /* best-effort */ }
+      }
+      setClickedEvent(null);
+      setPersonalEvents((prev) => prev.filter((e) => e.id !== eventId));
+    } catch {
+      // ignore — event stays visible
+    } finally {
+      setDeletingEventId(null);
+    }
+  }
 
   async function handleSync() {
     if (syncState === "syncing") return;
@@ -449,7 +550,7 @@ export function CalendarWorkspace({
       const result = await syncGoogleCalendar();
       setLastSyncCount(result.synced);
       setSyncState("done");
-      fetchCalendar(); // refresh calendar after sync
+      fetchCalendar(visibleRange.start.toISOString(), visibleRange.end.toISOString());
     } catch {
       setSyncState("error");
     }
@@ -555,9 +656,16 @@ export function CalendarWorkspace({
     if (selected < start || selected >= end) {
       setSelectedDate(getDateKey(start));
     }
+
+    // Re-fetch personal events for the newly visible range so events outside
+    // the default week window (e.g. request placeholders next week) always load.
+    if (scope === "personal") {
+      fetchCalendar(start.toISOString(), end.toISOString());
+    }
   };
 
   return (
+    <>
     <div className="space-y-4">
       {scope === "personal" ? (
         <div className="flex items-center justify-between gap-4 rounded-[2rem] border border-border/70 bg-card/90 px-7 py-5 shadow-sm">
@@ -744,7 +852,7 @@ export function CalendarWorkspace({
                 ref={calendarRef}
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                 initialView="timeGridWeek"
-                initialDate={new Date().toISOString()}
+                initialDate={initialDate ?? new Date().toISOString()}
                 headerToolbar={false}
                 firstDay={1}
                 weekends
@@ -842,10 +950,18 @@ export function CalendarWorkspace({
                     return;
                   }
 
+                  // Pending request placeholder → open the request detail modal instead.
+                  // Confirmed/rejected request events fall through to the normal popup + delete.
+                  if (arg.event.extendedProps.isRequestPlaceholder && arg.event.extendedProps.isPending) {
+                    const reqId = arg.event.extendedProps.requestId as string | undefined;
+                    if (reqId) void openRequestModal(reqId);
+                    return;
+                  }
+
                   const event = personalEvents.find((item) => item.id === arg.event.id);
                   if (!event) return;
                   const entries = [getPersonalEventDetail(event)];
-                  const popupHeight = 136;
+                  const popupHeight = 160;
                   const { x, y } = getFloatingPopupPosition(rect, popupWidth, popupHeight);
                   setClickedEvent({
                     entries,
@@ -854,6 +970,10 @@ export function CalendarWorkspace({
                       : "",
                     x,
                     y,
+                    // Only allow delete for non-Google-Calendar events
+                    eventId: event.source !== "google" ? event.id : undefined,
+                    source: event.source,
+                    requestId: event.requestId,
                   });
                 }}
                 dayCellClassNames={(arg) => (getDateKey(arg.date) === selectedDate ? ["fc-day-selected"] : [])}
@@ -958,13 +1078,17 @@ export function CalendarWorkspace({
                   }
 
                   if (arg.view.type === "dayGridMonth") {
+                    const pillColor = (arg.event.extendedProps.accentColor as string | undefined) ?? "#7c3aed";
+                    const pillPending = Boolean(arg.event.extendedProps.isPending);
                     return (
                       <div
                         className="fc-event-pill"
                         style={{
-                          background: `${((arg.event.extendedProps.accentColor as string | undefined) ?? "#7c3aed")}22`,
-                          borderColor: `${((arg.event.extendedProps.accentColor as string | undefined) ?? "#7c3aed")}32`,
-                          borderLeftColor: `${((arg.event.extendedProps.accentColor as string | undefined) ?? "#7c3aed")}7a`,
+                          background: `${pillColor}${pillPending ? "18" : "22"}`,
+                          borderColor: `${pillColor}${pillPending ? "55" : "32"}`,
+                          borderLeftColor: `${pillColor}${pillPending ? "66" : "7a"}`,
+                          borderStyle: pillPending ? "dashed" : "solid",
+                          opacity: pillPending ? 0.8 : 1,
                         }}
                       >
                         <p className="fc-event-pill__title">{arg.event.title}</p>
@@ -972,12 +1096,15 @@ export function CalendarWorkspace({
                     );
                   }
                   const accentColor = (arg.event.extendedProps.accentColor as string | undefined) ?? "#7c3aed";
+                  const isPending = Boolean(arg.event.extendedProps.isPending);
                   return (
                     <div
                       className="fc-event-personal-bar"
                       style={{
-                        borderColor: `${accentColor}22`,
-                        background: `${accentColor}4d`,
+                        borderColor: `${accentColor}${isPending ? "66" : "22"}`,
+                        borderStyle: isPending ? "dashed" : "solid",
+                        background: `${accentColor}${isPending ? "26" : "4d"}`,
+                        opacity: isPending ? 0.8 : 1,
                       }}
                     />
                   );
@@ -1149,6 +1276,22 @@ export function CalendarWorkspace({
                 );
               })}
             </div>
+            {clickedEvent.source === "google" ? (
+              <div className="border-t border-border/60 px-4 py-2.5">
+                <p className="text-center text-xs text-muted-foreground">From Google Calendar</p>
+              </div>
+            ) : clickedEvent.eventId ? (
+              <div className="border-t border-border/60 px-4 py-2.5">
+                <button
+                  type="button"
+                  disabled={deletingEventId === clickedEvent.eventId}
+                  onClick={() => clickedEvent.eventId && void handleDeleteEvent(clickedEvent.eventId)}
+                  className="w-full rounded-xl py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
+                >
+                  {deletingEventId === clickedEvent.eventId ? "Deleting…" : "Delete event"}
+                </button>
+              </div>
+            ) : null}
           </div>
         </>
       )}
@@ -1292,7 +1435,10 @@ export function CalendarWorkspace({
                             </div>
                           ))
                         : persEvs.sort((a: CalendarEvent, b: CalendarEvent) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime()).map((ev: CalendarEvent) => {
-                            const accentColor = personalCategoryMeta[getPersonalEventCategory(ev)].color;
+                            const isPending = ev.status === "pending";
+                            const accentColor = isPending
+                              ? PENDING_COLOR
+                              : personalCategoryMeta[getPersonalEventCategory(ev)].color;
                             return (
                               <div
                                 key={ev.id}
@@ -1302,21 +1448,31 @@ export function CalendarWorkspace({
                                   height: toH(ev.startAt, ev.endAt),
                                   margin: "0 2px",
                                   borderRadius: "0.6rem",
-                                  border: `1px solid ${accentColor}30`,
-                                  borderLeft: `3px solid ${accentColor}80`,
-                                  background: `${accentColor}22`,
+                                  border: `1px ${isPending ? "dashed" : "solid"} ${accentColor}30`,
+                                  borderLeft: `3px ${isPending ? "dashed" : "solid"} ${accentColor}80`,
+                                  background: `${accentColor}${isPending ? "18" : "22"}`,
                                   padding: "3px 6px",
+                                  opacity: isPending ? 0.8 : 1,
                                 }}
                                 onClick={(event) => {
+                                  // Pending request placeholder → open request modal.
+                                  // Confirmed/rejected request events fall through to the normal popup + delete.
+                                  if (ev.source === "request" && ev.status === "pending" && ev.requestId) {
+                                    void openRequestModal(ev.requestId);
+                                    return;
+                                  }
                                   const rect = event.currentTarget.getBoundingClientRect();
                                   const entries = [getPersonalEventDetail(ev)];
-                                  const popupHeight = 136;
+                                  const popupHeight = 160;
                                   const { x, y } = getFloatingPopupPosition(rect, 264, popupHeight);
                                   setClickedEvent({
                                     entries,
                                     timeRange: formatEventTimeRange(ev.startAt, ev.endAt),
                                     x,
                                     y,
+                                    eventId: ev.source !== "google" ? ev.id : undefined,
+                                    source: ev.source,
+                                    requestId: ev.requestId,
                                   });
                                 }}
                               >
@@ -1363,5 +1519,20 @@ export function CalendarWorkspace({
         );
       })()}
     </div>
+
+    {requestModal && (
+      <RequestDetailModal
+        open={!!requestModal}
+        request={requestModal.request}
+        requestType={requestModal.requestType}
+        groupName={requestModal.groupName}
+        senderName={requestModal.senderName}
+        onClose={() => setRequestModal(null)}
+        onAccept={() => handleRequestModalRespond("accepted")}
+        onDecline={() => handleRequestModalRespond("rejected")}
+        responding={requestModalResponding}
+      />
+    )}
+    </>
   );
 }

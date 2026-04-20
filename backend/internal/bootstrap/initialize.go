@@ -24,6 +24,7 @@ import (
 	"github.com/fsd-group/fsd/internal/usecase/textparser"
 	useruc "github.com/fsd-group/fsd/internal/usecase/user"
 	"github.com/fsd-group/fsd/pkg/eventbus"
+	"github.com/fsd-group/fsd/pkg/middleware"
 )
 
 // App holds all initialized components of the application.
@@ -56,6 +57,10 @@ func Initialize(cfg *config.Config) (*App, error) {
 	eventReqRepo := persistence.NewEventRequestPostgresRepo(db)
 	notifRepo := persistence.NewNotificationPostgresRepo(db)
 	calendarRepo := persistence.NewCalendarPostgresRepo(db)
+	sessionRepo := persistence.NewSessionPostgresRepo(db)
+
+	// Inject session repo into auth middleware
+	middleware.SetSessionRepo(sessionRepo)
 
 	// --- Use cases that the choreographer depends on must be created first ---
 	eventService := event.NewService(eventRepo, calendarRepo)
@@ -67,7 +72,7 @@ func Initialize(cfg *config.Config) (*App, error) {
 	ch := choreographer.New(bus, eventService)
 
 	// --- Remaining use cases ---
-	authService := auth.NewService(userRepo, googleClient)
+	authService := auth.NewService(userRepo, sessionRepo, googleClient)
 	groupService := group.NewService(groupRepo, userRepo)
 	calendarService := calendar.NewService(eventRepo, groupRepo)
 	eventReqService := eventrequest.NewService(eventReqRepo, notifRepo, googleClient, eventRepo, calendarRepo)
@@ -78,7 +83,7 @@ func Initialize(cfg *config.Config) (*App, error) {
 	telegramService := telegram.NewService(eventRepo, textParserService, eventReqService)
 
 	// --- Interface: REST handlers ---
-	authHandler := rest.NewAuthHandler(authService, cfg.FrontendURL)
+	authHandler := rest.NewAuthHandler(authService, syncService, userRepo, cfg.FrontendURL)
 	groupHandler := rest.NewGroupHandler(groupService)
 	calendarHandler := rest.NewCalendarHandler(calendarService)
 	eventHandler := rest.NewEventHandler(eventService, ch)

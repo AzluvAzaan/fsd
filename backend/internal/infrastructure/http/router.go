@@ -28,6 +28,7 @@ func NewRouter(
 	mux.HandleFunc("GET /auth/google/login", authHandler.GoogleLogin)
 	mux.HandleFunc("GET /auth/google/callback", authHandler.GoogleCallback)
 	mux.HandleFunc("POST /auth/logout", authHandler.Logout)
+	mux.HandleFunc("GET /auth/me", middleware.Auth(authHandler.Me))
 
 	// ---- Groups (UC2) ----
 	mux.HandleFunc("POST /groups", middleware.Auth(groupHandler.CreateGroup))

@@ -120,6 +120,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   const userId = getStoredUser()?.id;
   const response = await fetch(`${env.apiBaseUrl}${path}`, {
     ...init,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(userId ? { "X-User-ID": userId } : {}),

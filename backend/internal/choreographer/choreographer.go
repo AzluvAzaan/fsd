@@ -20,7 +20,6 @@ import (
 	"github.com/fsd-group/fsd/pkg/eventbus"
 )
 
-
 // Choreographer wires domain events to downstream service reactions.
 type Choreographer struct {
 	bus          *eventbus.Bus

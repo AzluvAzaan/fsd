@@ -225,11 +225,22 @@ function toEventInput(event: CalendarEvent): EventInput {
     : event.memberName
     ? undefined
     : personalCategoryMeta[category].color;
+
+  // Detect single-day all-day events only (not multi-day)
+  // Multi-day events work better as timed events for spanning display
+  const start = new Date(event.startAt);
+  const end = new Date(event.endAt);
+  const durationMs = end.getTime() - start.getTime();
+  const isExactlyOneDay = durationMs === 24 * 60 * 60 * 1000;
+  const startsAtMidnight = start.getUTCHours() === 0 && start.getUTCMinutes() === 0;
+  const isAllDay = startsAtMidnight && isExactlyOneDay;
+
   return {
     id: event.id,
     title: event.title,
-    start: event.startAt,
-    end: event.endAt,
+    start: new Date(event.startAt),
+    end: new Date(event.endAt),
+    allDay: isAllDay,
     extendedProps: {
       tone: event.tone ?? "default",
       group: event.group,
@@ -297,7 +308,7 @@ export function CalendarWorkspace({
   const memberColorsByDay = useMemo(() => {
     const map = new Map<string, string[]>();
     for (const ev of compositeGroupEvents) {
-      const day = ev.startAt.slice(0, 10);
+      const day = getDateKey(new Date(ev.startAt));
       if (!map.has(day)) map.set(day, []);
       for (const entry of ev.entries) {
         if (!map.get(day)!.includes(entry.color)) map.get(day)!.push(entry.color);
@@ -584,7 +595,7 @@ export function CalendarWorkspace({
   const personalColorsByDay = (() => {
     const map = new Map<string, string[]>();
     for (const ev of personalEvents) {
-      const day = ev.startAt.slice(0, 10);
+      const day = getDateKey(new Date(ev.startAt));
       if (!map.has(day)) map.set(day, []);
       const cat = getPersonalEventCategory(ev);
       map.get(day)!.push(personalCategoryMeta[cat].color);
@@ -852,11 +863,12 @@ export function CalendarWorkspace({
                 ref={calendarRef}
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                 initialView="timeGridWeek"
+                timeZone="local"
                 initialDate={initialDate ?? new Date().toISOString()}
                 headerToolbar={false}
                 firstDay={1}
                 weekends
-                allDaySlot={false}
+                allDaySlot={true}
                 nowIndicator
                 stickyHeaderDates
                 editable={false}
@@ -865,8 +877,8 @@ export function CalendarWorkspace({
                 dayMaxEventRows={3}
                 slotDuration="00:30:00"
                 slotLabelInterval="01:00:00"
-                slotMinTime="08:00:00"
-                slotMaxTime="18:00:00"
+                slotMinTime="00:00:00"
+                slotMaxTime="24:00:00"
                 height={viewMode === "week" ? "auto" : 660}
                 eventDisplay="block"
                 slotEventOverlap={false}
@@ -1078,6 +1090,15 @@ export function CalendarWorkspace({
                   }
 
                   if (arg.view.type === "dayGridMonth") {
+                    // For multi-day events, let FullCalendar handle the default rendering
+                    // so they span across days properly
+                    if (arg.event.allDay && arg.event.start && arg.event.end) {
+                      const days = (arg.event.end.getTime() - arg.event.start.getTime()) / (24 * 60 * 60 * 1000);
+                      if (days > 1) {
+                        return null; // Use FullCalendar's default multi-day rendering
+                      }
+                    }
+
                     const pillColor = (arg.event.extendedProps.accentColor as string | undefined) ?? "#7c3aed";
                     const pillPending = Boolean(arg.event.extendedProps.isPending);
                     return (
@@ -1097,6 +1118,32 @@ export function CalendarWorkspace({
                   }
                   const accentColor = (arg.event.extendedProps.accentColor as string | undefined) ?? "#7c3aed";
                   const isPending = Boolean(arg.event.extendedProps.isPending);
+
+                  // Multi-day events in week view (shown in all-day slot)
+                  const isMultiDay = arg.event.start && arg.event.end &&
+                    (arg.event.end.getTime() - arg.event.start.getTime()) > 24 * 60 * 60 * 1000;
+
+                  if (isMultiDay) {
+                    return (
+                      <div
+                        className="fc-event-multiday-bar"
+                        style={{
+                          background: accentColor,
+                          opacity: isPending ? 0.7 : 0.85,
+                          borderRadius: "4px",
+                          padding: "2px 8px",
+                          height: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        <span style={{ color: "white", fontSize: "0.75rem", fontWeight: 500 }}>
+                          {arg.event.title}
+                        </span>
+                      </div>
+                    );
+                  }
+
                   return (
                     <div
                       className="fc-event-personal-bar"
@@ -1323,8 +1370,8 @@ export function CalendarWorkspace({
           return Math.max(14, mins * PX_MIN);
         };
 
-        const grpEvs = compositeGroupEvents.filter(ev => ev.startAt.slice(0, 10) === dayPopup.dateKey);
-        const persEvs = personalEvents.filter((ev: CalendarEvent) => ev.startAt.slice(0, 10) === dayPopup.dateKey);
+        const grpEvs = compositeGroupEvents.filter(ev => getDateKey(new Date(ev.startAt)) === dayPopup.dateKey);
+        const persEvs = personalEvents.filter((ev: CalendarEvent) => getDateKey(new Date(ev.startAt)) === dayPopup.dateKey);
         const isEmpty = scope === "group" ? grpEvs.length === 0 : persEvs.length === 0;
         const HEADER_H = 84;
         const FOOTER_H = scope === "group" && !isEmpty ? 52 : 0;

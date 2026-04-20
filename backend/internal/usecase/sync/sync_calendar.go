@@ -45,7 +45,7 @@ func (s *Service) SyncGoogle(ctx context.Context, userID string, from, to time.T
 	return s.syncProvider(ctx, userID, from, to, "google", "Google Calendar", s.google)
 }
 
-// SyncApple pulls events from Apple Calendar / iCloud and upserts them locally (UC10).
+// SyncApple pulls events from Apple Calendar and upserts them locally (UC10).
 // Returns the number of events synced.
 func (s *Service) SyncApple(ctx context.Context, userID string, from, to time.Time) (int, error) {
 	if s.apple == nil {

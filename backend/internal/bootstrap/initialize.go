@@ -67,27 +67,30 @@ func Initialize(cfg *config.Config) (*App, error) {
 	authService := auth.NewService(userRepo, googleClient)
 	groupService := group.NewService(groupRepo, userRepo)
 	calendarService := calendar.NewService(eventRepo, groupRepo)
-	eventService := event.NewService(eventRepo)
-	eventReqService := eventrequest.NewService(eventReqRepo, eventRepo, notifRepo, googleClient)
+	eventService := event.NewService(eventRepo, calendarRepo)
+	eventReqService := eventrequest.NewService(eventReqRepo, notifRepo, googleClient)
 	notifService := notification.NewService(notifRepo)
-	syncService := synccal.NewService(eventRepo, calendarRepo, googleClient, nil) // apple connector: nil until configured
-	textParserService := textparser.NewService(eventRepo, llmClient)
+	syncService := synccal.NewService(eventRepo, calendarRepo, googleClient, nil, userRepo) // apple connector: nil until configured
+	textParserService := textparser.NewService(eventRepo, llmClient, calendarRepo)
 	userService := useruc.NewService(userRepo)
 	telegramService := telegram.NewService(eventRepo, textParserService, eventReqService)
 
 	// --- Interface: REST handlers ---
-	authHandler := rest.NewAuthHandler(authService)
+	authHandler := rest.NewAuthHandler(authService, cfg.FrontendURL)
 	groupHandler := rest.NewGroupHandler(groupService)
 	calendarHandler := rest.NewCalendarHandler(calendarService)
-	eventHandler := rest.NewEventHandler(eventService)
-	eventReqHandler := rest.NewEventRequestHandler(eventReqService)
+	eventHandler := rest.NewEventHandler(eventService, ch)
+	eventReqHandler := rest.NewEventRequestHandler(eventReqService, ch)
 	notifHandler := rest.NewNotificationHandler(notifService)
 	syncHandler := rest.NewSyncHandler(syncService, ch)
-	textParserHandler := rest.NewTextParserHandler(textParserService)
+	textParserHandler := rest.NewTextParserHandler(textParserService, ch)
 	userHandler := rest.NewUserHandler(userService)
 
 	// --- Interface: Telegram bot handler ---
-	telegramBot := tginterface.NewBotHandler(telegramService)
+	telegramBot := tginterface.NewBotHandler(telegramService, cfg.TelegramBotToken)
+
+	// --- Interface: API docs handler ---
+	docsHandler := rest.NewDocsHandler()
 
 	// --- HTTP router ---
 	router := infrahttp.NewRouter(
@@ -100,6 +103,8 @@ func Initialize(cfg *config.Config) (*App, error) {
 		syncHandler,
 		textParserHandler,
 		userHandler,
+		telegramBot,
+		docsHandler,
 	)
 
 	log.Info("All dependencies initialized successfully")

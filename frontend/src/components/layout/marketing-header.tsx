@@ -1,29 +1,22 @@
 import Link from "next/link";
 
+import { AppLogo } from "@/components/layout/app-logo";
+
 export function MarketingHeader() {
   return (
-    <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="grid size-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary to-indigo-400 text-sm font-bold text-white shadow-lg shadow-primary/25">
-            S
+        <Link href="/" className="group flex items-center gap-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm transition group-hover:-translate-y-0.5">
+            <AppLogo size={56} priority />
           </div>
           <div>
-            <p className="text-lg font-semibold tracking-tight">SyncUp</p>
-            <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Collaborative Calendar</p>
+            <p className="text-2xl font-semibold tracking-tight text-slate-900">SyncUp</p>
+            <p className="-mt-0.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+              Free Slot Detector
+            </p>
           </div>
         </Link>
-        <nav className="flex items-center gap-4 text-sm">
-          <Link href="/login" className="font-medium text-muted-foreground transition hover:text-foreground">
-            Log in
-          </Link>
-          <Link
-            href="/app/calendar"
-            className="shimmer-btn inline-flex rounded-full bg-primary px-5 py-2.5 font-medium text-primary-foreground shadow-lg shadow-primary/25 transition hover:opacity-95"
-          >
-            Open workspace
-          </Link>
-        </nav>
       </div>
     </header>
   );

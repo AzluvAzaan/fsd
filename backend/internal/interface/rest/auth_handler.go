@@ -3,8 +3,8 @@ package rest
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/json"
 	"net/http"
+	"net/url"
 
 	"github.com/fsd-group/fsd/internal/usecase/auth"
 )
@@ -12,11 +12,12 @@ import (
 // AuthHandler handles HTTP requests for UC1: Login via Gmail.
 type AuthHandler struct {
 	authService *auth.Service
+	frontendURL string
 }
 
 // NewAuthHandler creates a new auth handler.
-func NewAuthHandler(authService *auth.Service) *AuthHandler {
-	return &AuthHandler{authService: authService}
+func NewAuthHandler(authService *auth.Service, frontendURL string) *AuthHandler {
+	return &AuthHandler{authService: authService, frontendURL: frontendURL}
 }
 
 // GoogleLogin initiates the Google OAuth flow.
@@ -75,10 +76,14 @@ func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Google login failed: "+err.Error(), http.StatusUnauthorized)
 		return
 	}
-	// TODO: Set session/cookie or return JWT as needed
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(user)
+
+	// Redirect to the frontend callback page with the user info in query params.
+	params := url.Values{}
+	params.Set("user_id", user.ID)
+	params.Set("display_name", user.DisplayName)
+	params.Set("email", user.Email)
+	redirectURL := h.frontendURL + "/auth/callback?" + params.Encode()
+	http.Redirect(w, r, redirectURL, http.StatusFound)
 }
 
 // Logout logs the user out.

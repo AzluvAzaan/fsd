@@ -125,7 +125,7 @@ func migrate(ctx context.Context, db *sql.DB) error {
 		id             TEXT        PRIMARY KEY,
 		sender_id      TEXT        NOT NULL REFERENCES users(id),
 		group_id       TEXT        NOT NULL REFERENCES groups(id),
-		event_id       TEXT        NOT NULL REFERENCES events(id),
+		event_id       TEXT        REFERENCES events(id),
 		title          TEXT        NOT NULL DEFAULT '',
 		type           TEXT        NOT NULL DEFAULT '',
 		proposed_start TIMESTAMPTZ NOT NULL,
@@ -151,6 +151,12 @@ func migrate(ctx context.Context, db *sql.DB) error {
 		sent_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 		channel    TEXT        NOT NULL DEFAULT 'in_app'
 	);
-	`)
+		`)
+	if err != nil {
+		return err
+	}
+
+	// Existing databases may still have event_id as NOT NULL from older schema.
+	_, err = db.ExecContext(ctx, `ALTER TABLE event_requests ALTER COLUMN event_id DROP NOT NULL`)
 	return err
 }

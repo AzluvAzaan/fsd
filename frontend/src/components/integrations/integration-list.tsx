@@ -1,5 +1,6 @@
 import type { IntegrationItem } from "@/lib/constants/mock-data";
 import { integrations } from "@/lib/constants/mock-data";
+// Note: IntegrationList is only used in dev / non-connected contexts now.
 import { cn } from "@/lib/utils";
 
 type IntegrationListProps = {

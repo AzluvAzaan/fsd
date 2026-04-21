@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/fsd-group/fsd/internal/interface/rest"
+	tginterface "github.com/fsd-group/fsd/internal/interface/telegram"
 	"github.com/fsd-group/fsd/pkg/middleware"
 )
 
@@ -18,6 +19,8 @@ func NewRouter(
 	syncHandler *rest.SyncHandler,
 	textParserHandler *rest.TextParserHandler,
 	userHandler *rest.UserHandler,
+	telegramBot *tginterface.BotHandler,
+	docsHandler *rest.DocsHandler,
 ) http.Handler {
 	mux := http.NewServeMux()
 
@@ -30,6 +33,7 @@ func NewRouter(
 	mux.HandleFunc("POST /groups", middleware.Auth(groupHandler.CreateGroup))
 	mux.HandleFunc("POST /groups/join", middleware.Auth(groupHandler.JoinGroup))
 	mux.HandleFunc("GET /groups", middleware.Auth(groupHandler.ListGroups))
+	mux.HandleFunc("GET /groups/{groupId}", middleware.Auth(groupHandler.GetGroup))
 	mux.HandleFunc("GET /groups/{groupId}/members", middleware.Auth(groupHandler.ListMembers))
 	mux.HandleFunc("DELETE /groups/{groupId}", middleware.Auth(groupHandler.DeleteGroup))
 
@@ -47,6 +51,7 @@ func NewRouter(
 	mux.HandleFunc("POST /event-requests", middleware.Auth(eventReqHandler.SendRequest))
 	mux.HandleFunc("POST /event-requests/{requestId}/respond", middleware.Auth(eventReqHandler.Respond))
 	mux.HandleFunc("GET /event-requests/pending", middleware.Auth(eventReqHandler.ListPending))
+	mux.HandleFunc("GET /event-requests/sent", middleware.Auth(eventReqHandler.ListSent))
 
 	// ---- Notifications (UC9) ----
 	mux.HandleFunc("GET /notifications", middleware.Auth(notifHandler.ListNotifications))
@@ -64,6 +69,13 @@ func NewRouter(
 	mux.HandleFunc("GET /users", userHandler.FindByEmail)
 	mux.HandleFunc("PUT /users", userHandler.Upsert)
 	mux.HandleFunc("DELETE /users/{userId}", userHandler.Delete)
+
+	// ---- Telegram (UC11) ----
+	mux.HandleFunc("POST /telegram/webhook", telegramBot.ServeWebhook)
+
+	// ---- API Docs (no auth) ----
+	mux.HandleFunc("GET /docs", docsHandler.ServeUI)
+	mux.HandleFunc("GET /docs/openapi.json", docsHandler.ServeSpec)
 
 	// Apply global middleware
 	handler := middleware.CORS(

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chronos - Create Request</title>
+<!-- Fonts & Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary": "#5a3bdd",
+                        "on-background": "#2c2f31",
+                        "on-primary-container": "#0c0081",
+                        "surface-variant": "#dadde1",
+                        "on-primary-fixed": "#000000",
+                        "surface": "#f5f6f9",
+                        "on-primary-fixed-variant": "#11009c",
+                        "error-container": "#f74b6d",
+                        "primary-fixed-dim": "#8486ff",
+                        "tertiary-fixed": "#fc8bce",
+                        "on-secondary-fixed": "#3200a7",
+                        "background": "#f5f6f9",
+                        "secondary-container": "#d4cbff",
+                        "surface-tint": "#4240e6",
+                        "on-secondary-container": "#451dc8",
+                        "primary-dim": "#352fdb",
+                        "on-tertiary-fixed-variant": "#6c1051",
+                        "surface-container-low": "#eff1f4",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface": "#2c2f31",
+                        "primary-container": "#9496ff",
+                        "surface-container": "#e6e8ec",
+                        "surface-bright": "#f5f6f9",
+                        "on-secondary-fixed-variant": "#4f2dd2",
+                        "on-error": "#ffefef",
+                        "secondary-fixed-dim": "#c6bbff",
+                        "primary": "#4240e6",
+                        "inverse-surface": "#0c0f11",
+                        "on-surface-variant": "#595c5e",
+                        "surface-dim": "#d1d5d9",
+                        "surface-container-highest": "#dadde1",
+                        "tertiary-dim": "#882a68",
+                        "on-tertiary": "#ffeef4",
+                        "on-secondary": "#f6f0ff",
+                        "on-tertiary-container": "#600247",
+                        "tertiary-container": "#fc8bce",
+                        "secondary-dim": "#4e2bd1",
+                        "outline": "#75777a",
+                        "inverse-on-surface": "#9b9da0",
+                        "tertiary": "#973775",
+                        "on-tertiary-fixed": "#350026",
+                        "error-dim": "#a70138",
+                        "tertiary-fixed-dim": "#ec7ec0",
+                        "secondary-fixed": "#d4cbff",
+                        "error": "#b41340",
+                        "primary-fixed": "#9496ff",
+                        "inverse-primary": "#8183ff",
+                        "on-primary": "#f4f1ff",
+                        "on-error-container": "#510017",
+                        "outline-variant": "#abadb0",
+                        "surface-container-high": "#e0e3e6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-manrope { font-family: 'Manrope', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-surface antialiased overflow-hidden">
+<!-- Sidebar Navigation -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-slate-100 dark:bg-slate-950 flex flex-col gap-y-2 p-4 border-r-0 z-10">
+<div class="mb-10 px-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-white" data-icon="dashboard">dashboard</span>
+</div>
+<div>
+<h2 class="font-black text-indigo-600 font-manrope">Intelligent Canvas</h2>
+<p class="text-[10px] text-slate-500 font-bold tracking-widest uppercase">Premium Scheduling</p>
+</div>
+</div>
+</div>
+<nav class="flex flex-col gap-y-2 flex-grow">
+<a class="flex items-center gap-4 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-indigo-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-2xl transition-all hover:translate-x-1 duration-150 font-manrope font-semibold text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Workspace</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-indigo-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-2xl transition-all hover:translate-x-1 duration-150 font-manrope font-semibold text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span>Personal Calendar</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-indigo-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-2xl transition-all hover:translate-x-1 duration-150 font-manrope font-semibold text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span>Groups</span>
+</a>
+<!-- Active Tab -->
+<a class="flex items-center gap-4 px-4 py-3 bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-300 rounded-2xl shadow-sm transition-all hover:translate-x-1 duration-150 font-manrope font-semibold text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="mail">mail</span>
+<span>Requests</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-indigo-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-2xl transition-all hover:translate-x-1 duration-150 font-manrope font-semibold text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+</nav>
+<button class="mt-auto w-full py-4 bg-primary text-white rounded-2xl font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+            New Request
+        </button>
+</aside>
+<!-- Main Content Area (Background) -->
+<main class="ml-64 min-h-screen">
+<!-- Top Navigation -->
+<header class="w-full sticky top-0 z-40 bg-slate-50/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-sm dark:shadow-none flex justify-between items-center px-8 h-16 w-full">
+<div class="flex items-center gap-6 flex-grow">
+<div class="relative w-96">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" data-icon="search">search</span>
+<input class="w-full bg-slate-100/50 dark:bg-slate-800/50 border-none rounded-full pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary/20" placeholder="Search events, requests or people..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition-colors">
+<span class="material-symbols-outlined text-slate-500" data-icon="notifications">notifications</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition-colors">
+<span class="material-symbols-outlined text-slate-500" data-icon="help">help</span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden ml-2 ring-2 ring-primary/20 cursor-pointer">
+<img alt="User avatar" class="w-full h-full object-cover" data-alt="Close up portrait of a professional man in a minimal creative workspace background, soft lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDN-7NuKQcoJiGMMiVxzXsh17ii_JPG45XCdXxDBu2GeYzqx99UiQGFPgscR1TvG85yIlah_I0LkyCYJAplXUlHtiVcIIf-pVPOchUSk-OCpMTVtkJcOV2udIa6VPAbRUaNhibjGULS_pUlWSQ7cPKieGh-4dwM-PqaVEP6FeRpGztKonDiaGZZA9-QL8V5zeJaO_GhuioxhNSe1yIQwfAVNbDiYv24Te99NojiAxwJS2hHVi6jkDpchVgZR8pFHx-pOizJFg105AR1"/>
+</div>
+</div>
+</header>
+<!-- Dashboard Content Skeleton -->
+<div class="p-8">
+<div class="flex items-baseline justify-between mb-10">
+<h1 class="text-4xl font-extrabold font-manrope tracking-tight text-on-surface">Your Workspace</h1>
+<p class="text-on-surface-variant font-medium">Tuesday, October 24</p>
+</div>
+<div class="grid grid-cols-12 gap-8">
+<!-- Main Schedule View -->
+<div class="col-span-8 space-y-6">
+<div class="bg-surface-container-low rounded-xl p-6 h-96 relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-br from-indigo-50/50 to-transparent"></div>
+<div class="relative flex justify-between items-center mb-6">
+<h3 class="text-xl font-bold font-manrope">Upcoming Slots</h3>
+<div class="flex gap-2">
+<span class="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold">Today</span>
+<span class="px-3 py-1 bg-slate-200 text-slate-500 rounded-full text-xs font-bold">Weekly</span>
+</div>
+</div>
+<div class="grid grid-cols-7 gap-4 h-full">
+<div class="bg-surface-container-lowest rounded-lg border border-slate-100 p-3 h-64"></div>
+<div class="bg-surface-container-lowest rounded-lg border border-slate-100 p-3 h-64 flex flex-col gap-2">
+<div class="bg-secondary-container h-12 rounded-md"></div>
+</div>
+<div class="bg-surface-container-lowest rounded-lg border border-indigo-200 p-3 h-64 shadow-sm ring-1 ring-indigo-100">
+<div class="bg-primary h-20 rounded-md"></div>
+</div>
+<div class="bg-surface-container-lowest rounded-lg border border-slate-100 p-3 h-64"></div>
+<div class="bg-surface-container-lowest rounded-lg border border-slate-100 p-3 h-64"></div>
+<div class="bg-surface-container-lowest rounded-lg border border-slate-100 p-3 h-64"></div>
+<div class="bg-surface-container-lowest rounded-lg border border-slate-100 p-3 h-64"></div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-6">
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm space-y-4">
+<div class="flex justify-between items-center">
+<span class="material-symbols-outlined text-primary" data-icon="group">group</span>
+<span class="text-xs font-bold text-on-surface-variant">Team Pulse</span>
+</div>
+<p class="text-2xl font-bold font-manrope">85% Availability</p>
+<div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[85%]"></div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm space-y-4">
+<div class="flex justify-between items-center">
+<span class="material-symbols-outlined text-secondary" data-icon="auto_awesome">auto_awesome</span>
+<span class="text-xs font-bold text-on-surface-variant">Optimal Overlaps</span>
+</div>
+<p class="text-2xl font-bold font-manrope">12 Slots Found</p>
+<div class="flex -space-x-2">
+<div class="w-6 h-6 rounded-full bg-indigo-200 border-2 border-white"></div>
+<div class="w-6 h-6 rounded-full bg-indigo-300 border-2 border-white"></div>
+<div class="w-6 h-6 rounded-full bg-indigo-400 border-2 border-white"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Rail Stats -->
+<div class="col-span-4 space-y-6">
+<div class="bg-surface-container-high rounded-xl p-6 h-full">
+<h4 class="font-bold mb-4 font-manrope">Pending Decisions</h4>
+<div class="space-y-4">
+<div class="bg-surface-container-lowest p-4 rounded-xl flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-tertiary-container flex items-center justify-center text-on-tertiary-container">
+<span class="material-symbols-outlined" data-icon="coffee">coffee</span>
+</div>
+<div>
+<p class="text-sm font-bold">Coffee Sync</p>
+<p class="text-xs text-on-surface-variant">3 people invited</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-4 rounded-xl flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined" data-icon="terminal">terminal</span>
+</div>
+<div>
+<p class="text-sm font-bold">Review PR #42</p>
+<p class="text-xs text-on-surface-variant">High Priority</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Create Request Modal Overlay -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-6">
+<!-- Backdrop -->
+<div class="absolute inset-0 bg-slate-900/40 backdrop-blur-md"></div>
+<!-- Modal Content -->
+<div class="relative w-full max-w-2xl bg-surface-container-lowest rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+<!-- Modal Header -->
+<div class="flex items-center justify-between p-8 border-b border-slate-100">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-white">
+<span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
+</div>
+<div>
+<h2 class="text-2xl font-extrabold font-manrope tracking-tight">Create Request</h2>
+<p class="text-sm text-on-surface-variant">Initiate a new collaborative session</p>
+</div>
+</div>
+<button class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-slate-400" data-icon="close">close</span>
+</button>
+</div>
+<!-- Modal Body -->
+<div class="p-8 space-y-6">
+<!-- Form Row: Event Name -->
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-widest text-on-surface-variant pl-1">Event Name</label>
+<input class="w-full bg-surface-container-low border-none rounded-lg p-4 text-on-surface focus:ring-2 focus:ring-primary/20 transition-all font-medium placeholder:text-slate-400" placeholder="e.g. Weekly Design Critique" type="text"/>
+</div>
+<!-- Form Row: Grid for Location and Time -->
+<div class="grid grid-cols-2 gap-6">
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-widest text-on-surface-variant pl-1">Location</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" data-icon="location_on">location_on</span>
+<input class="w-full bg-surface-container-low border-none rounded-lg pl-12 pr-4 py-4 text-on-surface focus:ring-2 focus:ring-primary/20 transition-all font-medium placeholder:text-slate-400" placeholder="Zoom or Room A" type="text"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-widest text-on-surface-variant pl-1">Time Preference</label>
+<div class="relative">
+<select class="w-full bg-surface-container-low border-none rounded-lg p-4 text-on-surface focus:ring-2 focus:ring-primary/20 transition-all font-medium appearance-none cursor-pointer">
+<option>As soon as possible</option>
+<option>This week</option>
+<option>Next week</option>
+<option>Custom range</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Form Row: Participants Selection -->
+<div class="space-y-3">
+<label class="text-xs font-bold uppercase tracking-widest text-on-surface-variant pl-1">Participants</label>
+<div class="bg-surface-container-low p-4 rounded-lg flex flex-wrap gap-2 min-h-[3.5rem]">
+<!-- Selected Tag -->
+<div class="flex items-center gap-2 bg-primary px-3 py-1 rounded-lg text-white text-sm font-medium">
+<img alt="Participant" class="w-5 h-5 rounded-full object-cover" data-alt="Close up of a friendly smiling woman with glasses, soft natural daylight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBaYA2WDd21yo_uT-BcCpjsKc-wxBYl6O6VSG-YCCq_XVUX6rRE8fYFaUizX5d9Lit5wyiQ0QyejPLMjk9OZHZxPQpZCOl2x26cSGweXF_-2LQrELpyxBI1xEvsRXuxMeQS5E7eq5HL7ZIFDAldUoVH4HcCtuZV8dLIIayGPJQJgu0EWfidwUB_6cxLiQZGDPQvwAOA9eXbQGO_xErgRaCoxF5EkFBQPNtenDWynZFm9inS8lrzvJjWfP0xUjo0wEQLUu7dSsrp89gO"/>
+<span>Alex Rivers</span>
+<span class="material-symbols-outlined text-xs cursor-pointer" data-icon="close">close</span>
+</div>
+<div class="flex items-center gap-2 bg-primary px-3 py-1 rounded-lg text-white text-sm font-medium">
+<img alt="Participant" class="w-5 h-5 rounded-full object-cover" data-alt="Close up of a young professional man with beard, neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDm2IKkNCfqT36orCQmt6s8Ouple-SronlRig2iD_5NOSVYaIwHeLBLGCOIiF02OmUAspKPAquhFf1f927lTnMZShTz9p34VTVce9Jp3GOxQS3X__RWiMZ4nt_MYt9J7-YPzA6MBUVES2EKeGDBTlYRuQq3Rktu7ZtHr5E5O9GLz2thKDVu04eZl7wP19GiIGbL8Th8k62bBL-wAXmixVZh-6DQPc4ADQTLGTjaSHmKUgT2F1ghlIWE-V3w3gUL6bb6aTL77cjCFm3w"/>
+<span>Jordan Smith</span>
+<span class="material-symbols-outlined text-xs cursor-pointer" data-icon="close">close</span>
+</div>
+<!-- Add Placeholder -->
+<div class="flex items-center gap-2 px-3 py-1 border border-dashed border-slate-300 rounded-lg text-slate-400 text-sm cursor-pointer hover:bg-white/50 transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="person_add">person_add</span>
+<span>Add person</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Modal Footer -->
+<div class="p-8 bg-slate-50 flex justify-end items-center gap-4">
+<button class="px-8 py-3 rounded-full font-bold text-on-surface-variant hover:bg-slate-200 transition-colors font-manrope">Cancel</button>
+<button class="px-10 py-3 bg-gradient-to-b from-primary to-primary-dim text-white rounded-full font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all font-manrope">Create</button>
+</div>
+</div>
+</div>
+</body></html>

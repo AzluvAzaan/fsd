@@ -22,9 +22,10 @@ type GoogleAuthProvider interface {
 
 // GoogleUserInfo is the data returned from Google after authentication.
 type GoogleUserInfo struct {
-	Email       string
-	Name        string
-	AccessToken string
+	Email        string
+	Name         string
+	AccessToken  string
+	RefreshToken string // long-lived token stored for Calendar/Gmail API access
 }
 
 // Service handles UC1: Login via Gmail.
@@ -50,11 +51,24 @@ func (s *Service) LoginWithGoogle(ctx context.Context, code string) (*user.User,
 	// Check if user already exists
 	existing, _ := s.users.FindByEmail(ctx, info.Email)
 
-	// Upsert the user in the database
+	// Upsert the user in the database.
+	// Store the refresh token (long-lived) — used by the sync service to obtain
+	// fresh access tokens for Google Calendar and Gmail APIs without requiring
+	// the user to re-login.
+	gmailToken := info.RefreshToken
+	if gmailToken == "" {
+		// Fallback: Google only issues a refresh token on first consent or when
+		// ApprovalForce is set. If missing, keep whatever token is already stored.
+		if existing != nil {
+			gmailToken = existing.GmailToken
+		} else {
+			gmailToken = info.AccessToken
+		}
+	}
 	u := &user.User{
 		Email:       info.Email,
 		DisplayName: info.Name,
-		GmailToken:  info.AccessToken,
+		GmailToken:  gmailToken,
 	}
 	if existing != nil {
 		// Returning user — keep their existing ID

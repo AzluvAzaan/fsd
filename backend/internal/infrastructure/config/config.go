@@ -27,6 +27,9 @@ type Config struct {
 
 	// Telegram Bot (for UC11)
 	TelegramBotToken string
+
+	// Frontend URL (for post-OAuth redirects)
+	FrontendURL string
 }
 
 // Load reads configuration from environment variables (or .env file).
@@ -46,6 +49,7 @@ func Load() (*Config, error) {
 		LLMBaseURL:         getEnv("LLM_BASE_URL", "https://api.openai.com/v1"),
 		LLMModel:           getEnv("LLM_MODEL", "gpt-4"),
 		TelegramBotToken:   getEnv("TELEGRAM_BOT_TOKEN", ""),
+		FrontendURL:        getEnv("FRONTEND_URL", "http://localhost:3000"),
 	}
 
 	if cfg.DatabaseURL == "" {

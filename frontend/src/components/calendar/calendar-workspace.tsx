@@ -1,29 +1,62 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DatesSetArg, EventContentArg, EventInput } from "@fullcalendar/core";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
-import { ChevronLeft, ChevronRight, Clock3, Layers3, Sparkles, X } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, ChevronLeft, ChevronRight, Clock3, Layers3, RefreshCw, Sparkles, X } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { SectionCard } from "@/components/shared/section-card";
 import { buttonVariants } from "@/components/ui/button";
-import {
-  availabilitySlots,
-  groupMembers,
-  memberSchedules,
-  personalEvents,
-  requests,
-  type CalendarEvent,
-} from "@/lib/constants/mock-data";
+import { getCalendar, getGroupCalendar, getGroupMembers, getUserById, syncGoogleCalendar } from "@/lib/api";
 import { cn } from "@/lib/utils";
+
+export type CalendarRecommendedSlot = {
+  id: string;
+  startAt: string;
+  endAt: string;
+};
 
 type CalendarWorkspaceProps = {
   scope?: "personal" | "group";
   groupName?: string;
+  groupId?: string;
+  selectedUserIds?: string[];
+  recommendedSlots?: CalendarRecommendedSlot[];
+  selectedRecommendedSlotId?: string;
+  onRecommendedSlotSelect?: (slotId: string) => void;
+  hideGroupInsights?: boolean;
+  hideGroupHeader?: boolean;
+};
+
+type CalendarEvent = {
+  id: string;
+  title: string;
+  startAt: string;
+  endAt: string;
+  tone?: "default" | "highlight" | "muted";
+  group?: string;
+  memberName?: string;
+};
+
+type GroupMemberView = {
+  userId: string;
+  name: string;
+  color: string;
+  availability: string;
+};
+
+type AvailabilitySlot = {
+  id: string;
+  date: string;
+  time: string;
+  confidence: string;
+  participants: string[];
+  note: string;
 };
 
 type CompositeEntry = {
@@ -86,33 +119,7 @@ const eventTimeFormatter = new Intl.DateTimeFormat("en-US", {
   minute: "2-digit",
 });
 
-const createEvent = (
-  id: string,
-  title: string,
-  startAt: string,
-  endAt: string,
-  tone: CalendarEvent["tone"] = "default",
-  group?: string,
-): CalendarEvent => ({
-  id,
-  title,
-  startAt,
-  endAt,
-  tone,
-  group,
-});
-
-const personalCalendarEvents: CalendarEvent[] = [
-  ...personalEvents,
-  createEvent("ev5", "Design Crit", "2026-03-23T10:00:00", "2026-03-23T11:30:00", "highlight"),
-  createEvent("ev6", "Client Review", "2026-03-24T13:00:00", "2026-03-24T14:00:00"),
-  createEvent("ev7", "Heads-down Build", "2026-03-25T09:00:00", "2026-03-25T12:00:00", "muted"),
-  createEvent("ev8", "Mentor Session", "2026-03-25T15:00:00", "2026-03-25T16:00:00"),
-  createEvent("ev9", "Weekly Planning", "2026-03-23T09:30:00", "2026-03-23T10:30:00", "highlight"),
-  createEvent("ev10", "Research Sprint", "2026-03-26T11:00:00", "2026-03-26T13:00:00"),
-  createEvent("ev11", "Coffee Catch-up", "2026-03-27T14:00:00", "2026-03-27T15:00:00", "muted"),
-  createEvent("ev12", "Demo Dry Run", "2026-03-28T16:00:00", "2026-03-28T17:00:00", "highlight"),
-];
+const MEMBER_COLORS = ["#7c3aed", "#db2777", "#2563eb", "#059669", "#d97706", "#0ea5e9", "#22c55e"];
 
 const personalCategoryMeta: Record<PersonalEventCategory, { color: string; keywords: string[] }> = {
   Work: {
@@ -143,73 +150,9 @@ function getPersonalEventCategory(event: CalendarEvent): PersonalEventCategory {
   return "Personal";
 }
 
-// Flat raw events (used for bottom panels / member breakdown)
-const groupCalendarEvents: CalendarEvent[] = Object.entries(memberSchedules).flatMap(
-  ([memberName, evts]) => evts.map((ev) => ({ ...ev, memberName })),
-);
-
-// Composite events: merge all events with the exact same start+end time into one block.
-// This ensures FullCalendar renders ONE block per time slot instead of N narrow columns.
-const compositeGroupEvents: CompositeCalendarEvent[] = (() => {
-  const byKey = new Map<string, CompositeCalendarEvent>();
-  for (const [memberName, memberEvts] of Object.entries(memberSchedules)) {
-    const member = groupMembers.find((m) => m.name === memberName);
-    const color = member?.color ?? "#7c3aed";
-    for (const ev of memberEvts) {
-      const key = `${ev.startAt}|${ev.endAt}`;
-      if (byKey.has(key)) {
-        byKey.get(key)!.entries.push({ memberName, title: ev.title, color });
-      } else {
-        byKey.set(key, {
-          id: `cmp-${byKey.size}`,
-          startAt: ev.startAt,
-          endAt: ev.endAt,
-          entries: [{ memberName, title: ev.title, color }],
-        });
-      }
-    }
-  }
-  return Array.from(byKey.values());
-})();
-
 function toCompositeEventInput(ev: CompositeCalendarEvent): EventInput {
   return { id: ev.id, start: ev.startAt, end: ev.endAt, extendedProps: { entries: ev.entries } };
 }
-
-const personalEventCategories = personalCalendarEvents.reduce<Record<string, PersonalEventCategory>>((acc, event) => {
-  acc[event.id] = getPersonalEventCategory(event);
-  return acc;
-}, {});
-
-// Per-day member colors for group month view dots
-const memberColorsByDay = (() => {
-  const map = new Map<string, string[]>();
-  for (const ev of compositeGroupEvents) {
-    const day = ev.startAt.slice(0, 10);
-    if (!map.has(day)) map.set(day, []);
-    for (const entry of ev.entries) {
-      if (!map.get(day)!.includes(entry.color)) map.get(day)!.push(entry.color);
-    }
-  }
-  return map;
-})();
-
-const personalColorsByDay = (() => {
-  const map = new Map<string, string[]>();
-  for (const ev of personalCalendarEvents) {
-    const day = ev.startAt.slice(0, 10);
-    if (!map.has(day)) map.set(day, []);
-    map.get(day)!.push(personalCategoryMeta[personalEventCategories[ev.id] ?? "Personal"].color);
-  }
-  return map;
-})();
-
-const personalLegendItems = (Object.keys(personalCategoryMeta) as PersonalEventCategory[])
-  .filter((category) => Object.values(personalEventCategories).includes(category))
-  .map((category) => ({
-    label: category,
-    color: personalCategoryMeta[category].color,
-  }));
 
 function getDateKey(value: Date | string) {
   const date = typeof value === "string" ? new Date(value) : value;
@@ -249,7 +192,7 @@ function getFloatingPopupPosition(rect: DOMRect, popupWidth: number, popupHeight
 }
 
 function getPersonalEventDetail(event: CalendarEvent): DetailPopupEntry {
-  const category = personalEventCategories[event.id] ?? "Personal";
+  const category = getPersonalEventCategory(event);
   const detailParts = [];
   if (event.group) detailParts.push(event.group);
   if (event.tone === "highlight") detailParts.push("Priority");
@@ -265,7 +208,7 @@ function getPersonalEventDetail(event: CalendarEvent): DetailPopupEntry {
 }
 
 function toEventInput(event: CalendarEvent): EventInput {
-  const category = personalEventCategories[event.id] ?? "Personal";
+  const category = getPersonalEventCategory(event);
   return {
     id: event.id,
     title: event.title,
@@ -281,26 +224,236 @@ function toEventInput(event: CalendarEvent): EventInput {
   };
 }
 
-export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }: CalendarWorkspaceProps) {
+type SyncState = "idle" | "syncing" | "done" | "error";
+
+export function CalendarWorkspace({
+  scope = "personal",
+  groupName = "FSD Core",
+  groupId,
+  selectedUserIds,
+  recommendedSlots = [],
+  selectedRecommendedSlotId,
+  onRecommendedSlotSelect,
+  hideGroupInsights = false,
+  hideGroupHeader = false,
+}: CalendarWorkspaceProps) {
   const calendarRef = useRef<FullCalendar | null>(null);
-  const [mounted, setMounted] = useState(false);
   const [viewMode, setViewMode] = useState<"week" | "month">("week");
-  const events = scope === "personal" ? personalCalendarEvents : groupCalendarEvents;
+
+  // Personal events fetched from the real API
+  const [personalEvents, setPersonalEvents] = useState<CalendarEvent[]>([]);
+  const [groupEvents, setGroupEvents] = useState<CalendarEvent[]>([]);
+  const [groupMembers, setGroupMembers] = useState<GroupMemberView[]>([]);
+  const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
+  const [groupError, setGroupError] = useState<string | null>(null);
+  const [syncState, setSyncState] = useState<SyncState>("idle");
+  const [lastSyncCount, setLastSyncCount] = useState<number | null>(null);
+
+  const compositeGroupEvents = useMemo(() => {
+    const byKey = new Map<string, CompositeCalendarEvent>();
+    for (const ev of groupEvents) {
+      const member = groupMembers.find((m) => m.name === ev.memberName);
+      const color = member?.color ?? "#7c3aed";
+      const key = `${ev.startAt}|${ev.endAt}`;
+      const entry: CompositeEntry = {
+        memberName: ev.memberName ?? "Unknown",
+        title: ev.title,
+        color,
+      };
+      if (byKey.has(key)) {
+        byKey.get(key)!.entries.push(entry);
+      } else {
+        byKey.set(key, {
+          id: `cmp-${byKey.size}`,
+          startAt: ev.startAt,
+          endAt: ev.endAt,
+          entries: [entry],
+        });
+      }
+    }
+    return Array.from(byKey.values());
+  }, [groupEvents, groupMembers]);
+
+  const memberColorsByDay = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const ev of compositeGroupEvents) {
+      const day = ev.startAt.slice(0, 10);
+      if (!map.has(day)) map.set(day, []);
+      for (const entry of ev.entries) {
+        if (!map.get(day)!.includes(entry.color)) map.get(day)!.push(entry.color);
+      }
+    }
+    return map;
+  }, [compositeGroupEvents]);
+
+  const selectedUserIdsKey = useMemo(
+    () => [...new Set(selectedUserIds ?? [])].sort().join(","),
+    [selectedUserIds],
+  );
+
+  const recommendedCalendarEvents = useMemo(
+    () =>
+      recommendedSlots
+        .filter((slot) => slot.startAt && slot.endAt)
+        .map<EventInput>((slot) => ({
+          id: `recommended-${slot.id}`,
+          title: "",
+          start: slot.startAt,
+          end: slot.endAt,
+          classNames: ["fc-recommended-slot-event", selectedRecommendedSlotId === slot.id ? "is-selected" : ""],
+          extendedProps: {
+            isRecommendation: true,
+            recommendationId: slot.id,
+          },
+        })),
+    [recommendedSlots, selectedRecommendedSlotId],
+  );
+
+  const events = scope === "personal" ? personalEvents : groupEvents;
   const calendarFeedEvents = scope === "personal"
     ? events.map(toEventInput)
-    : compositeGroupEvents.map(toCompositeEventInput);
-  const [calendarTitle, setCalendarTitle] = useState("Mar 16 – 22, 2026");
-  const [selectedDate, setSelectedDate] = useState(getDateKey(events[0]?.startAt ?? "2026-03-16T09:00:00"));
-  const [visibleRange, setVisibleRange] = useState({
-    start: new Date("2026-03-16T00:00:00"),
-    end: new Date("2026-03-23T00:00:00"),
+    : [...compositeGroupEvents.map(toCompositeEventInput), ...recommendedCalendarEvents];
+
+  const todayKey = getDateKey(new Date());
+  const [calendarTitle, setCalendarTitle] = useState("");
+  const [selectedDate, setSelectedDate] = useState(todayKey);
+  const [visibleRange, setVisibleRange] = useState(() => {
+    const now = new Date();
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 7);
+    return { start, end };
   });
   const [hoverTooltip, setHoverTooltip] = useState<HoverTooltip>(null);
   const [clickedEvent, setClickedEvent] = useState<ClickedEvent>(null);
   const [dayPopup, setDayPopup] = useState<DayPopup>(null);
 
-  // Prevent SSR rendering of FullCalendar (avoids hydration mismatch + flushSync errors)
-  useEffect(() => { setMounted(true); }, []);
+  const fetchCalendar = useCallback(() => {
+    getCalendar().then((view) => {
+      setPersonalEvents(
+        (view.events ?? []).map((e) => ({
+          id: e.id,
+          title: e.title,
+          startAt: e.startTime,
+          endAt: e.endTime,
+          tone: "default" as const,
+        })),
+      );
+    }).catch(() => {
+      // leave events empty — calendar still renders correctly showing current week
+    });
+  }, []);
+
+  // Fetch real calendar events on mount (personal scope only)
+  useEffect(() => {
+    if (scope !== "personal") return;
+    fetchCalendar();
+  }, [scope, fetchCalendar]);
+
+  useEffect(() => {
+    if (scope !== "group" || !groupId) return;
+
+    const activeGroupId = groupId;
+    let active = true;
+
+    async function loadGroupData() {
+      try {
+        const members = await getGroupMembers(activeGroupId);
+        const memberUsers = await Promise.all(
+          members.map(async (member) => {
+            try {
+              return await getUserById(member.userId);
+            } catch {
+              return null;
+            }
+          }),
+        );
+
+        const normalizedMembers: GroupMemberView[] = members.map((member, index) => {
+          const user = memberUsers[index];
+          return {
+            userId: member.userId,
+            name: user?.displayName ?? user?.email ?? member.userId,
+            color: MEMBER_COLORS[index % MEMBER_COLORS.length],
+            availability: "Busy for selected slots",
+          };
+        });
+
+        const selectedUsersSet = new Set(
+          selectedUserIdsKey ? selectedUserIdsKey.split(",").filter(Boolean) : [],
+        );
+        const visibleMembers = selectedUsersSet.size > 0
+          ? normalizedMembers.filter((member) => selectedUsersSet.has(member.userId))
+          : normalizedMembers;
+
+        const userIds = visibleMembers.map((member) => member.userId);
+        const groupCalendar = userIds.length > 0
+          ? await getGroupCalendar(activeGroupId, userIds)
+          : { busySlots: [], freeSlots: [] };
+
+        if (!active) return;
+
+        const memberNameById = new Map(visibleMembers.map((member) => [member.userId, member.name]));
+        const normalizedEvents: CalendarEvent[] = (groupCalendar.busySlots ?? []).map((slot, index) => {
+          const memberName = memberNameById.get(slot.userId) ?? slot.userId;
+          return {
+            id: `busy-${slot.userId}-${slot.startTime}-${index}`,
+            title: `${memberName} busy`,
+            startAt: slot.startTime,
+            endAt: slot.endTime,
+            tone: "default",
+            memberName,
+          };
+        });
+
+        const normalizedAvailability: AvailabilitySlot[] = (groupCalendar.freeSlots ?? []).map((slot, index) => {
+          const start = new Date(slot.startTime);
+          const end = new Date(slot.endTime);
+          const duration = Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000));
+
+          return {
+            id: `free-${index}`,
+            date: start.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }),
+            time: `${start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })} - ${end.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`,
+            confidence: "All selected members free",
+            participants: visibleMembers.map((member) => member.name),
+            note: `${visibleMembers.length} members available for ${duration} minutes.`,
+          };
+        });
+
+        setGroupError(null);
+        setGroupMembers(visibleMembers);
+        setGroupEvents(normalizedEvents);
+        setAvailabilitySlots(normalizedAvailability);
+      } catch (err) {
+        if (!active) return;
+        setGroupError(err instanceof Error ? err.message : "Failed to load group calendar");
+        setGroupMembers([]);
+        setGroupEvents([]);
+        setAvailabilitySlots([]);
+      }
+    }
+
+    void loadGroupData();
+
+    return () => {
+      active = false;
+    };
+  }, [scope, groupId, selectedUserIdsKey]);
+
+  async function handleSync() {
+    if (syncState === "syncing") return;
+    setSyncState("syncing");
+    try {
+      const result = await syncGoogleCalendar();
+      setLastSyncCount(result.synced);
+      setSyncState("done");
+      fetchCalendar(); // refresh calendar after sync
+    } catch {
+      setSyncState("error");
+    }
+  }
 
   useEffect(() => {
     const api = calendarRef.current?.getApi();
@@ -314,8 +467,6 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
     }
   }, [viewMode]);
 
-  useEffect(() => { if (viewMode !== "month") setDayPopup(null); }, [viewMode]);
-
   const selectedEvents = events
     .filter((event) => getDateKey(event.startAt) === selectedDate)
     .sort((left, right) => new Date(left.startAt).getTime() - new Date(right.startAt).getTime());
@@ -326,19 +477,26 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
     return start < visibleRange.end && end > visibleRange.start;
   });
 
-  const pendingCount = requests.filter((request) => request.status === "pending").length;
   const selectedDayLabel = formatSelectedDay(selectedDate);
 
-  const dayPopupEvents = dayPopup
-    ? (scope === "group" ? groupCalendarEvents : personalCalendarEvents)
-        .filter((e) => e.startAt.slice(0, 10) === dayPopup.dateKey)
-        .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())
-    : [];
-  const dayPopupMemberBreakdown = dayPopup && scope === "group"
-    ? groupMembers
-        .map((m) => ({ member: m, events: dayPopupEvents.filter((e) => e.memberName === m.name) }))
-        .filter(({ events }) => events.length > 0)
-    : [];
+  // Compute personal color dots and legend dynamically from live events
+  const personalColorsByDay = (() => {
+    const map = new Map<string, string[]>();
+    for (const ev of personalEvents) {
+      const day = ev.startAt.slice(0, 10);
+      if (!map.has(day)) map.set(day, []);
+      const cat = getPersonalEventCategory(ev);
+      map.get(day)!.push(personalCategoryMeta[cat].color);
+    }
+    return map;
+  })();
+
+  const personalLegendItems = (() => {
+    const usedCats = new Set(personalEvents.map(getPersonalEventCategory));
+    return (Object.keys(personalCategoryMeta) as PersonalEventCategory[])
+      .filter((c) => usedCats.has(c))
+      .map((c) => ({ label: c, color: personalCategoryMeta[c].color }));
+  })();
 
   // Per-member breakdown for the selected day (group scope only)
   const selectedMemberBreakdown = scope === "group"
@@ -368,11 +526,9 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
       icon: Clock3,
     },
     {
-      label: scope === "group" ? "Open windows" : "Pending requests",
-      value: scope === "group" ? `${availabilitySlots.length}` : `${pendingCount}`,
-      note: scope === "group"
-        ? "Best overlap slots identified this week."
-        : scope === "personal" ? "Requests linked to your schedule." : "Requests still waiting on group response.",
+      label: "Open windows",
+      value: `${availabilitySlots.length}`,
+      note: "Free windows where all selected members are available.",
       icon: Sparkles,
     },
   ];
@@ -431,7 +587,10 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
                 <button
                   key={mode}
                   type="button"
-                  onClick={() => setViewMode(mode)}
+                  onClick={() => {
+                    setViewMode(mode);
+                    if (mode !== "month") setDayPopup(null);
+                  }}
                   className={cn(
                     "rounded-full px-4 py-2 text-sm font-medium capitalize",
                     viewMode === mode ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
@@ -441,37 +600,71 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
                 </button>
               ))}
             </div>
+            <button
+              type="button"
+              onClick={handleSync}
+              disabled={syncState === "syncing"}
+              title={
+                syncState === "done" && lastSyncCount !== null
+                  ? `Synced ${lastSyncCount} event${lastSyncCount === 1 ? "" : "s"}`
+                  : syncState === "error"
+                  ? "Sync failed — try again"
+                  : "Sync Google Calendar"
+              }
+              className={cn(
+                buttonVariants({ variant: "outline", size: "icon-lg" }),
+                "rounded-full bg-card",
+                syncState === "done" && "border-emerald-400/50 text-emerald-600 dark:text-emerald-400",
+                syncState === "error" && "border-destructive/50 text-destructive",
+              )}
+              aria-label="Sync Google Calendar"
+            >
+              <RefreshCw className={cn("size-4", syncState === "syncing" && "animate-spin")} />
+            </button>
           </div>
         </div>
-      ) : (
-        <PageHeader
-          eyebrow="Group calendar"
-          title={calendarTitle}
-          description={`Combined view of all ${groupName} member schedules. Find overlap windows and coordinate meetings.`}
-          actions={
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => handleCalendarMove(-1)}
-                className={cn(buttonVariants({ variant: "outline", size: "icon-lg" }), "rounded-full bg-card")}
-                aria-label="Previous range"
-              >
-                <ChevronLeft className="size-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleCalendarMove(1)}
-                className={cn(buttonVariants({ variant: "outline", size: "icon-lg" }), "rounded-full bg-card")}
-                aria-label="Next range"
-              >
-                <ChevronRight className="size-4" />
-              </button>
-              <div className="flex items-center rounded-full border border-border bg-card p-1 shadow-sm">
-                {(["week", "month"] as const).map((mode) => (
-                  <button
+      ) : hideGroupHeader ? null : (
+        <>
+          {groupId && (
+            <Link
+              href={`/app/groups/${groupId}`}
+              className="inline-flex items-center justify-center size-10 rounded-full border border-border hover:bg-muted transition-colors"
+              aria-label="Back to group"
+            >
+              <ArrowLeft className="size-4" />
+            </Link>
+          )}
+          <PageHeader
+            eyebrow="Group calendar"
+            title={calendarTitle}
+            description={`Combined view of all ${groupName} member schedules. Find overlap windows and coordinate meetings.`}
+            actions={
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleCalendarMove(-1)}
+                  className={cn(buttonVariants({ variant: "outline", size: "icon-lg" }), "rounded-full bg-card")}
+                  aria-label="Previous range"
+                >
+                  <ChevronLeft className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCalendarMove(1)}
+                  className={cn(buttonVariants({ variant: "outline", size: "icon-lg" }), "rounded-full bg-card")}
+                  aria-label="Next range"
+                >
+                  <ChevronRight className="size-4" />
+                </button>
+                <div className="flex items-center rounded-full border border-border bg-card p-1 shadow-sm">
+                  {(["week", "month"] as const).map((mode) => (
+                    <button
                     key={mode}
                     type="button"
-                    onClick={() => setViewMode(mode)}
+                    onClick={() => {
+                      setViewMode(mode);
+                      if (mode !== "month") setDayPopup(null);
+                    }}
                     className={cn(
                       "rounded-full px-4 py-2 text-sm font-medium capitalize",
                       viewMode === mode ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
@@ -482,11 +675,18 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
                 ))}
               </div>
             </div>
-          }
-        />
+            }
+          />
+        </>
       )}
 
-      {scope === "group" && (
+      {scope === "group" && groupError && (
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {groupError}
+        </div>
+      )}
+
+      {scope === "group" && !hideGroupInsights && (
         <div className="grid gap-4 lg:grid-cols-3">
           {summaryCards.map((card) => {
             const Icon = card.icon;
@@ -540,12 +740,11 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
         )}
         <div className="fsd-calendar overflow-x-auto p-3 sm:p-4 lg:p-6">
           <div className="min-w-[760px]">
-            {mounted ? (
-              <FullCalendar
+            <FullCalendar
                 ref={calendarRef}
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                 initialView="timeGridWeek"
-                initialDate={events[0]?.startAt}
+                initialDate={new Date().toISOString()}
                 headerToolbar={false}
                 firstDay={1}
                 weekends
@@ -606,6 +805,16 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
                   if (arg.event.start) {
                     setSelectedDate(getDateKey(arg.event.start));
                   }
+                  const isRecommendation = Boolean(arg.event.extendedProps.isRecommendation);
+                  if (isRecommendation) {
+                    const recommendationId = arg.event.extendedProps.recommendationId as string | undefined;
+                    if (recommendationId) {
+                      onRecommendedSlotSelect?.(recommendationId);
+                    }
+                    setClickedEvent(null);
+                    return;
+                  }
+
                   const rect = arg.el.getBoundingClientRect();
                   const popupWidth = 264;
 
@@ -633,7 +842,7 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
                     return;
                   }
 
-                  const event = personalCalendarEvents.find((item) => item.id === arg.event.id);
+                  const event = personalEvents.find((item) => item.id === arg.event.id);
                   if (!event) return;
                   const entries = [getPersonalEventDetail(event)];
                   const popupHeight = 136;
@@ -670,6 +879,11 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
                 }}
                 eventClassNames={() => ["fc-event-shell"]}
                 eventMouseEnter={(arg) => {
+                  if (arg.event.extendedProps.isRecommendation) {
+                    setHoverTooltip(null);
+                    return;
+                  }
+
                   const entries = arg.event.extendedProps.entries as CompositeEntry[];
                   const rect = arg.el.getBoundingClientRect();
                   const tooltipWidth = 230;
@@ -688,7 +902,6 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
                     return;
                   }
 
-                  const tone = arg.event.extendedProps.tone as CalendarEvent["tone"];
                   const category = (arg.event.extendedProps.category as PersonalEventCategory | undefined) ?? "Personal";
                   const accentColor = (arg.event.extendedProps.accentColor as string | undefined) ?? "#7c3aed";
                   setHoverTooltip({
@@ -707,6 +920,20 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
                 eventMouseLeave={() => setHoverTooltip(null)}
                 eventContent={(arg: EventContentArg) => {
                   if (scope === "group") {
+                    if (arg.event.extendedProps.isRecommendation) {
+                      const isSelected =
+                        (arg.event.extendedProps.recommendationId as string | undefined) ===
+                        selectedRecommendedSlotId;
+                      return (
+                        <div
+                          className={cn(
+                            "fc-recommended-slot-pill",
+                            isSelected && "is-selected",
+                          )}
+                        />
+                      );
+                    }
+
                     const entries = arg.event.extendedProps.entries as CompositeEntry[];
                     return (
                       <div
@@ -756,14 +983,11 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
                   );
                 }}
               />
-            ) : (
-              <div style={{ height: viewMode === "week" ? 720 : 560 }} className="rounded-3xl bg-muted/20" />
-            )}
           </div>
         </div>
       </SectionCard>
 
-      {scope === "group" && (
+      {scope === "group" && !hideGroupInsights && (
         <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
           <SectionCard>
             <div className="flex items-start justify-between gap-4">
@@ -957,7 +1181,7 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
         };
 
         const grpEvs = compositeGroupEvents.filter(ev => ev.startAt.slice(0, 10) === dayPopup.dateKey);
-        const persEvs = personalCalendarEvents.filter(ev => ev.startAt.slice(0, 10) === dayPopup.dateKey);
+        const persEvs = personalEvents.filter((ev: CalendarEvent) => ev.startAt.slice(0, 10) === dayPopup.dateKey);
         const isEmpty = scope === "group" ? grpEvs.length === 0 : persEvs.length === 0;
         const HEADER_H = 84;
         const FOOTER_H = scope === "group" && !isEmpty ? 52 : 0;
@@ -1067,8 +1291,8 @@ export function CalendarWorkspace({ scope = "personal", groupName = "FSD Core" }
                               </div>
                             </div>
                           ))
-                        : persEvs.sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime()).map((ev) => {
-                            const accentColor = personalCategoryMeta[personalEventCategories[ev.id] ?? "Personal"].color;
+                        : persEvs.sort((a: CalendarEvent, b: CalendarEvent) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime()).map((ev: CalendarEvent) => {
+                            const accentColor = personalCategoryMeta[getPersonalEventCategory(ev)].color;
                             return (
                               <div
                                 key={ev.id}

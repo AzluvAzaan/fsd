@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(make db-migrate:*)",
+      "Bash(go run:*)",
+      "Bash(npm run:*)"
+    ]
+  }
+}

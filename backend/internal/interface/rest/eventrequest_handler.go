@@ -27,6 +27,8 @@ type sendEventRequestBody struct {
 	EventID       string   `json:"eventId,omitempty"`
 	Title         string   `json:"title"`
 	EventType     string   `json:"eventType"`
+	Location      string   `json:"location"`
+	Note          string   `json:"note"`
 	ProposedStart string   `json:"proposedStart"`
 	ProposedEnd   string   `json:"proposedEnd"`
 	RecipientIDs  []string `json:"recipientIds"`
@@ -64,6 +66,8 @@ func (h *EventRequestHandler) SendRequest(w http.ResponseWriter, r *http.Request
 		EventID:       req.EventID,
 		Title:         req.Title,
 		EventType:     req.EventType,
+		Location:      req.Location,
+		Note:          req.Note,
 		ProposedStart: proposedStart,
 		ProposedEnd:   proposedEnd,
 		RecipientIDs:  req.RecipientIDs,
@@ -101,11 +105,12 @@ func (h *EventRequestHandler) Respond(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.eventReqService.Respond(r.Context(), eventrequest.RespondInput{
+	eventReq, err := h.eventReqService.Respond(r.Context(), eventrequest.RespondInput{
 		RequestID:   requestID,
 		RecipientID: userID,
 		Decision:    req.Decision,
-	}); err != nil {
+	})
+	if err != nil {
 		response.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -115,12 +120,36 @@ func (h *EventRequestHandler) Respond(w http.ResponseWriter, r *http.Request) {
 		eventType = choreographer.EventTypeEventRequestAccepted
 	}
 	h.choreographer.Publish(eventType, choreographer.EventRequestResponsePayload{
-		RequestID: requestID,
-		UserID:    userID,
-		Response:  req.Decision,
+		RequestID:          requestID,
+		UserID:             userID,
+		Response:           req.Decision,
+		SenderID:           eventReq.SenderID,
+		Title:              eventReq.Title,
+		EventType:          eventReq.Type,
+		ProposedStart:      eventReq.ProposedStart,
+		ProposedEnd:        eventReq.ProposedEnd,
+		PlaceholderEventID: eventReq.EventID,
 	})
 
 	response.Success(w, map[string]string{"message": "response recorded"})
+}
+
+// GetRequest returns a single event request by ID.
+// GET /event-requests/{requestId}
+func (h *EventRequestHandler) GetRequest(w http.ResponseWriter, r *http.Request) {
+	requestID := r.PathValue("requestId")
+	if requestID == "" {
+		response.Error(w, http.StatusBadRequest, "requestId is required")
+		return
+	}
+
+	req, err := h.eventReqService.GetRequest(r.Context(), requestID)
+	if err != nil {
+		response.Error(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	response.Success(w, req)
 }
 
 // ListPending returns all pending event requests for the authenticated user.
@@ -133,6 +162,53 @@ func (h *EventRequestHandler) ListPending(w http.ResponseWriter, r *http.Request
 	}
 
 	list, err := h.eventReqService.ListPending(r.Context(), userID)
+	if err != nil {
+		response.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if list == nil {
+		response.Success(w, []any{})
+		return
+	}
+
+	response.Success(w, list)
+}
+
+// DeleteRequest soft-dismisses an event request for the current user only.
+// The request row is not removed; other participants are unaffected.
+// DELETE /event-requests/{requestId}
+func (h *EventRequestHandler) DeleteRequest(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		response.Error(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	requestID := r.PathValue("requestId")
+	if requestID == "" {
+		response.Error(w, http.StatusBadRequest, "requestId is required")
+		return
+	}
+
+	if err := h.eventReqService.DismissRequest(r.Context(), userID, requestID); err != nil {
+		response.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response.NoContent(w)
+}
+
+// ListReceived returns all event requests sent to the authenticated user's groups (all statuses).
+// GET /event-requests/received
+func (h *EventRequestHandler) ListReceived(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		response.Error(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	list, err := h.eventReqService.ListReceived(r.Context(), userID)
 	if err != nil {
 		response.Error(w, http.StatusInternalServerError, err.Error())
 		return

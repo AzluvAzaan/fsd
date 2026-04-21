@@ -106,14 +106,10 @@ func parseDateRange(r *http.Request) (time.Time, time.Time, error) {
 	toStr := r.URL.Query().Get("to")
 
 	if fromStr == "" || toStr == "" {
-		// Default: current week (Monday 00:00 to Sunday 23:59)
+		// Default: 30 days back to 90 days forward
 		now := time.Now().UTC()
-		weekday := int(now.Weekday())
-		if weekday == 0 {
-			weekday = 7
-		}
-		from := now.AddDate(0, 0, -(weekday - 1)).Truncate(24 * time.Hour)
-		to := from.AddDate(0, 0, 7)
+		from := now.AddDate(0, 0, -30).Truncate(24 * time.Hour)
+		to := now.AddDate(0, 0, 90)
 		return from, to, nil
 	}
 

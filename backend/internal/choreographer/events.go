@@ -1,5 +1,7 @@
 package choreographer
 
+import "time"
+
 // Domain event type constants published on the event bus.
 // The choreographer subscribes to these and triggers downstream reactions.
 const (
@@ -24,10 +26,20 @@ type CalendarSyncedPayload struct {
 }
 
 // EventRequestResponsePayload carries metadata about an accept or reject decision.
+// The full request context is included so the choreographer can create/update
+// calendar events without making an additional repository call.
 type EventRequestResponsePayload struct {
 	RequestID string // the request that was responded to
-	UserID    string // the user who responded
+	UserID    string // the user who responded (recipient)
 	Response  string // "accepted" or "rejected"
+
+	// Request context needed for event creation/update.
+	SenderID           string
+	Title              string
+	EventType          string
+	ProposedStart      time.Time
+	ProposedEnd        time.Time
+	PlaceholderEventID string // sender's pending placeholder event; empty if not set
 }
 
 // ManualEventCreatedPayload carries metadata when a user creates a manual event.

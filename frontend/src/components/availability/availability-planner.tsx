@@ -486,20 +486,62 @@ export function AvailabilityPlanner({
             </div>
           </SectionCard>
 
-      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="space-y-6">
-          <div className="grid gap-4 lg:grid-cols-3">
-            <SectionCard className="p-5">
-              <p className="text-sm font-medium text-muted-foreground">Selected range</p>
-              <p className="mt-3 text-xl font-semibold">{selectedRange}</p>
-            </SectionCard>
-            <SectionCard className="p-5">
-              <p className="text-sm font-medium text-muted-foreground">Meeting length</p>
-              <p className="mt-3 text-xl font-semibold">{selectedDuration}</p>
-            </SectionCard>
-            <SectionCard className="p-5">
-              <p className="text-sm font-medium text-muted-foreground">Candidate slots</p>
-              <p className="mt-3 text-xl font-semibold">{filteredSlots.length}</p>
+          <SectionCard>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-medium text-muted-foreground">Participants</p>
+              <p className="text-xs text-muted-foreground">
+                {selectedMembers.length}/{groupMembers.length} selected
+              </p>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {groupMembers.map((member) => {
+                const active = selectedMemberIds.has(member.userId);
+                return (
+                  <button
+                    key={member.userId}
+                    type="button"
+                    onClick={() => toggleMember(member.userId)}
+                    className={cn(
+                      "rounded-full border px-4 py-2 text-sm font-medium",
+                      active
+                        ? "border-primary/30 bg-primary/10 text-primary"
+                        : "border-border bg-background text-muted-foreground hover:bg-muted",
+                    )}
+                  >
+                    {member.name}
+                  </button>
+                );
+              })}
+            </div>
+          </SectionCard>
+
+          <SectionCard>
+            <p className="text-sm font-medium text-muted-foreground">Days</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {weekdayOptions.map((day, index) => {
+                const active = selectedWeekdays.has(day.id);
+                return (
+                  <button
+                    key={`${day.id}-${index}`}
+                    type="button"
+                    onClick={() => toggleWeekday(day.id)}
+                    className={cn(
+                      "grid size-11 place-items-center rounded-full border text-sm font-semibold",
+                      active
+                        ? "border-primary/30 bg-primary/10 text-primary"
+                        : "border-border bg-background text-muted-foreground hover:bg-muted",
+                    )}
+                  >
+                    {day.label}
+                  </button>
+                );
+              })}
+            </div>
+          </SectionCard>
+
+          {searchError ? (
+            <SectionCard>
+              <p className="text-sm text-destructive">{searchError}</p>
             </SectionCard>
           ) : null}
 
@@ -530,50 +572,85 @@ export function AvailabilityPlanner({
             </button>
           </div>
 
-          <SlotList items={filteredSlots} selectedSlotId={selectedSlot?.id} onSelect={(slotId) => {
-            setSelectedSlotId(slotId);
-            setRequestDrafted(false);
-          }} actionLabel="Inspect slot" />
-        </div>
+          {searchError ? (
+            <SectionCard>
+              <p className="text-sm text-destructive">{searchError}</p>
+            </SectionCard>
+          ) : null}
 
-        <SectionCard>
-          <p className="text-sm font-medium text-muted-foreground">Selected result</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight">{selectedSlot?.date ?? "No slot available"}</h2>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            {selectedSlot
-              ? "Review the candidate window here and draft a request from the same page."
-              : "Increase the date range or lower the participant threshold to reveal more slots."}
-          </p>
+          <CalendarClient
+            scope="group"
+            groupName={groupName}
+            groupId={groupId}
+            selectedUserIds={Array.from(selectedMemberIds)}
+            recommendedSlots={recommendedSlots}
+            selectedRecommendedSlotId={selectedSlot?.id}
+            onRecommendedSlotSelect={(slotId) => {
+              setSelectedSlotId(slotId);
+            }}
+            hideGroupInsights
+            hideGroupHeader
+          />
 
-          {selectedSlot ? (
-            <div className="mt-6 space-y-4">
-              <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
-                <p className="text-sm font-medium text-muted-foreground">Time</p>
-                <p className="mt-2 text-lg font-semibold">{selectedSlot.time}</p>
-              </div>
-              <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
-                <p className="text-sm font-medium text-muted-foreground">Participants</p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{selectedSlot.participants.join(", ")}</p>
-              </div>
-              <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
-                <p className="text-sm font-medium text-muted-foreground">Planner note</p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{selectedSlot.note}</p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setRequestDrafted(true)}
-                className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-              >
-                Draft request
-              </button>
-
-              {requestDrafted ? (
-                <div className="rounded-3xl bg-primary/8 p-4">
-                  <p className="text-sm font-semibold text-primary">Draft ready</p>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    Draft ready for {selectedSlot.date} at {selectedSlot.time}. Review the details and send when you're ready.
+          <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+            <div>
+              {slots.length > 0 ? (
+                <SlotList
+                  items={slots}
+                  selectedSlotId={selectedSlot?.id}
+                  onSelect={(slotId) => {
+                    setSelectedSlotId(slotId);
+                  }}
+                />
+              ) : (
+                <SectionCard>
+                  <p className="text-sm font-medium">No matching slots</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Adjust your filters and run Find slots again.
                   </p>
+                </SectionCard>
+              )}
+            </div>
+
+            <SectionCard>
+              <p className="text-sm font-medium text-muted-foreground">Selected slot</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+                {selectedSlot?.date ?? "No slot selected"}
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                {selectedSlot
+                  ? "Use this recommendation to draft your request."
+                  : "Select one of the recommended slots from the calendar or cards."}
+              </p>
+
+              {selectedSlot ? (
+                <div className="mt-6 space-y-4">
+                  <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
+                    <p className="text-sm font-medium text-muted-foreground">Time</p>
+                    <p className="mt-2 text-lg font-semibold">{selectedSlot.time}</p>
+                  </div>
+                  <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
+                    <p className="text-sm font-medium text-muted-foreground">Participants</p>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                      {selectedSlot.participants.join(", ")}
+                    </p>
+                  </div>
+                  <div className="rounded-3xl border border-border/70 bg-background/70 p-4">
+                    <p className="text-sm font-medium text-muted-foreground">Planner note</p>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                      {selectedSlot.note}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRequestDrafted(true);
+                    }}
+                    className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+                  >
+                    Create request
+                  </button>
                 </div>
               ) : null}
             </SectionCard>

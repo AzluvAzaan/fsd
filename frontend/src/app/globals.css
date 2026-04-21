@@ -250,10 +250,22 @@
     color: color-mix(in srgb, var(--muted-foreground) 86%, transparent);
   }
 
-  /* Month view: hide event rows — popup handles details on click */
-  .fsd-calendar .fc .fc-dayGridMonth-view .fc-daygrid-day-events,
+  /* Month view: hide single-day events — popup handles details on click */
+  /* Multi-day events (in fc-daygrid-event-harness-abs) are kept visible to show spanning */
+  .fsd-calendar .fc .fc-dayGridMonth-view .fc-daygrid-day-events .fc-daygrid-event-harness:not(.fc-daygrid-event-harness-abs),
   .fsd-calendar .fc .fc-dayGridMonth-view .fc-daygrid-more-link {
     display: none;
+  }
+
+  /* Style multi-day events that span across days */
+  .fsd-calendar .fc .fc-dayGridMonth-view .fc-daygrid-event-harness-abs .fc-event {
+    background: var(--primary);
+    opacity: 0.85;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: white;
   }
 
   /* Month view cells are clickable */

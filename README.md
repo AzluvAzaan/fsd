@@ -129,21 +129,6 @@ Add it when you need things like:
 
 Until then, basic cards/lists/custom views are easier to maintain.
 
-### Suggested next pages
-
-Good pages to build next:
-
-- sign in / onboarding
-- dashboard
-- groups list
-- group details
-- calendar / availability view
-- notifications
-- event request flows
-
-### Suggested feature growth pattern
-
-As the app grows, create feature-oriented folders under `src/components` and `src/lib` only when needed. Keep the structure simple until the product earns more complexity.
 
 ## Commands
 

@@ -42,9 +42,13 @@ jobs:
             git diff go.mod go.sum
             exit 1
           fi
+          
+      - name: Run tests
+        run: go test ./...
 
       - name: Build
         run: go build ./...
+
 
   frontend:
     name: Frontend

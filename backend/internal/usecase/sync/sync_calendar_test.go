@@ -88,7 +88,8 @@ func (m *MockEventRepo) BusySlots(ctx context.Context, userIDs []string, from, t
 }
 
 func (m *MockEventRepo) Upsert(ctx context.Context, e *domainevent.Event) error {
-	return nil
+	m.Upserted = append(m.Upserted, e)
+	return m.Err
 }
 func (m *MockEventRepo) DeleteByRequestID(ctx context.Context, requestID string) error {
 	return nil

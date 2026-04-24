@@ -28,11 +28,13 @@ func NewRouter(
 	mux.HandleFunc("GET /auth/google/login", authHandler.GoogleLogin)
 	mux.HandleFunc("GET /auth/google/callback", authHandler.GoogleCallback)
 	mux.HandleFunc("POST /auth/logout", authHandler.Logout)
+	mux.HandleFunc("GET /auth/me", middleware.Auth(authHandler.Me))
 
 	// ---- Groups (UC2) ----
 	mux.HandleFunc("POST /groups", middleware.Auth(groupHandler.CreateGroup))
 	mux.HandleFunc("POST /groups/join", middleware.Auth(groupHandler.JoinGroup))
 	mux.HandleFunc("GET /groups", middleware.Auth(groupHandler.ListGroups))
+	mux.HandleFunc("GET /groups/{groupId}", middleware.Auth(groupHandler.GetGroup))
 	mux.HandleFunc("GET /groups/{groupId}/members", middleware.Auth(groupHandler.ListMembers))
 	mux.HandleFunc("DELETE /groups/{groupId}", middleware.Auth(groupHandler.DeleteGroup))
 
@@ -49,7 +51,11 @@ func NewRouter(
 	// ---- Event Requests (UC7, UC8) ----
 	mux.HandleFunc("POST /event-requests", middleware.Auth(eventReqHandler.SendRequest))
 	mux.HandleFunc("POST /event-requests/{requestId}/respond", middleware.Auth(eventReqHandler.Respond))
+	mux.HandleFunc("DELETE /event-requests/{requestId}", middleware.Auth(eventReqHandler.DeleteRequest))
 	mux.HandleFunc("GET /event-requests/pending", middleware.Auth(eventReqHandler.ListPending))
+	mux.HandleFunc("GET /event-requests/received", middleware.Auth(eventReqHandler.ListReceived))
+	mux.HandleFunc("GET /event-requests/sent", middleware.Auth(eventReqHandler.ListSent))
+	mux.HandleFunc("GET /event-requests/{requestId}", middleware.Auth(eventReqHandler.GetRequest))
 
 	// ---- Notifications (UC9) ----
 	mux.HandleFunc("GET /notifications", middleware.Auth(notifHandler.ListNotifications))

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronRight, X } from "lucide-react";
 
+import { AppLogo } from "@/components/layout/app-logo";
 import { appNavItems } from "@/lib/constants/nav";
 import { cn } from "@/lib/utils";
 
@@ -39,9 +40,7 @@ function SidebarContent({ pathname, onClose, collapsed = false, onToggleCollapse
             collapsed ? "gap-0 px-0" : "flex-1 gap-3 px-2",
           )}
         >
-          <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary to-indigo-400 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20">
-            FS
-          </div>
+          <AppLogo size={44} />
           <div
             className={cn(
               "min-w-0 overflow-hidden transition-all duration-300 ease-in-out",

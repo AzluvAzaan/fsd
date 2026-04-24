@@ -6,7 +6,8 @@ import { Plus, Users } from "lucide-react";
 
 import { Modal } from "@/components/shared/modal";
 import { PageHeader } from "@/components/shared/page-header";
-import { createGroup, getGroups, joinGroup, type ApiGroup } from "@/lib/api";
+import { createGroup, getGroupMembers, getGroups, joinGroup, type ApiGroup } from "@/lib/api";
+import { getStoredUser } from "@/lib/auth";
 import { type Group } from "@/lib/constants/mock-data";
 import { cn } from "@/lib/utils";
 
@@ -21,13 +22,13 @@ const ACCENTS = [
   "from-amber-500 to-orange-500",
 ];
 
-function apiGroupToUIGroup(g: ApiGroup, index: number): Group {
+function apiGroupToUIGroup(g: ApiGroup, index: number, memberCount: number, isOwner: boolean): Group {
   return {
     id: g.id,
     name: g.name,
     description: `Invite code: ${g.inviteCode}`,
-    members: 1,
-    role: "Owner",
+    members: memberCount,
+    role: isOwner ? "Owner" : "Member",
     nextWindow: "Set after members join",
     accent: ACCENTS[index % ACCENTS.length],
   };
@@ -45,8 +46,22 @@ export function GroupsWorkspace() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    const currentUserId = getStoredUser()?.id ?? "";
     getGroups()
-      .then((data) => setItems(data.map(apiGroupToUIGroup)))
+      .then(async (groups) => {
+        const memberCounts = await Promise.all(
+          groups.map((g) =>
+            getGroupMembers(g.id)
+              .then((members) => members.length)
+              .catch(() => 0),
+          ),
+        );
+        setItems(
+          groups.map((g, i) =>
+            apiGroupToUIGroup(g, i, memberCounts[i] ?? 0, g.createdById === currentUserId),
+          ),
+        );
+      })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
@@ -56,7 +71,8 @@ export function GroupsWorkspace() {
     setSubmitting(true);
     try {
       const created = await createGroup(groupName.trim());
-      const uiGroup = apiGroupToUIGroup(created, items.length);
+      const currentUserId = getStoredUser()?.id ?? "";
+      const uiGroup = apiGroupToUIGroup(created, items.length, 1, created.createdById === currentUserId);
       setItems((prev) => [uiGroup, ...prev]);
       setGroupName("");
       setGroupDescription("");
@@ -75,7 +91,19 @@ export function GroupsWorkspace() {
     try {
       await joinGroup(code);
       const data = await getGroups();
-      setItems(data.map(apiGroupToUIGroup));
+      const currentUserId = getStoredUser()?.id ?? "";
+      const memberCounts = await Promise.all(
+        data.map((g) =>
+          getGroupMembers(g.id)
+            .then((members) => members.length)
+            .catch(() => 0),
+        ),
+      );
+      setItems(
+        data.map((g, i) =>
+          apiGroupToUIGroup(g, i, memberCounts[i] ?? 0, g.createdById === currentUserId),
+        ),
+      );
       setInviteCode("");
       setModalMode(null);
     } catch (err) {

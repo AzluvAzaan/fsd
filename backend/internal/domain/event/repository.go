@@ -26,4 +26,12 @@ type Repository interface {
 	// Upsert inserts an event or updates it on ID conflict.
 	// Used by the sync service to idempotently store external calendar events.
 	Upsert(ctx context.Context, e *Event) error
+
+	// UpdateStatusByRequestID sets the status on every event linked to a request.
+	// Used when a request is accepted or rejected to promote/cancel all placeholders at once.
+	UpdateStatusByRequestID(ctx context.Context, requestID string, status string) error
+
+	// DeleteByRequestID removes all placeholder events linked to a request.
+	// Called when the request itself is deleted so no orphan events remain.
+	DeleteByRequestID(ctx context.Context, requestID string) error
 }

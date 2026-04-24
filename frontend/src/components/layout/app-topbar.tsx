@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Bell, LogOut, Menu, Search, Settings2 } from "lucide-react";
 
 import { ThemeToggle } from "@/components/shared/theme-toggle";
@@ -23,7 +23,7 @@ export function AppTopbar({ onToggleSidebar }: AppTopbarProps) {
 
   function handleLogout() {
     clearStoredUser();
-    router.push("/login");
+    router.push("/");
   }
 
   const initials = user?.displayName

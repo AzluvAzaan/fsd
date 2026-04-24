@@ -17,7 +17,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const user = getStoredUser();
     if (!user) {
-      router.replace("/login");
+      router.replace("/");
       return;
     }
 
@@ -25,7 +25,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
       .then(() => setVerified(true))
       .catch(() => {
         clearStoredUser();
-        router.replace("/login");
+        router.replace("/");
       });
   }, [router]);
 

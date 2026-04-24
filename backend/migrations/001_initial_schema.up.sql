@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS events (
     end_time        TIMESTAMPTZ NOT NULL,
     status          TEXT        NOT NULL DEFAULT 'confirmed',
     source          TEXT        NOT NULL DEFAULT 'manual',
+    request_id      TEXT,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -71,9 +72,11 @@ CREATE TABLE IF NOT EXISTS event_requests (
     id              TEXT        PRIMARY KEY,
     sender_id       TEXT        NOT NULL REFERENCES users(id),
     group_id        TEXT        NOT NULL REFERENCES groups(id),
-    event_id        TEXT        NOT NULL REFERENCES events(id),
+    event_id        TEXT        REFERENCES events(id),
     title           TEXT        NOT NULL DEFAULT '',
     type            TEXT        NOT NULL DEFAULT '',
+    location        TEXT        NOT NULL DEFAULT '',
+    note            TEXT        NOT NULL DEFAULT '',
     proposed_start  TIMESTAMPTZ NOT NULL,
     proposed_end    TIMESTAMPTZ NOT NULL,
     status          TEXT        NOT NULL DEFAULT 'pending',

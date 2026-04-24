@@ -24,6 +24,7 @@ import (
 	"github.com/fsd-group/fsd/internal/usecase/textparser"
 	useruc "github.com/fsd-group/fsd/internal/usecase/user"
 	"github.com/fsd-group/fsd/pkg/eventbus"
+	"github.com/fsd-group/fsd/pkg/middleware"
 )
 
 // App holds all initialized components of the application.
@@ -56,19 +57,25 @@ func Initialize(cfg *config.Config) (*App, error) {
 	eventReqRepo := persistence.NewEventRequestPostgresRepo(db)
 	notifRepo := persistence.NewNotificationPostgresRepo(db)
 	calendarRepo := persistence.NewCalendarPostgresRepo(db)
+	sessionRepo := persistence.NewSessionPostgresRepo(db)
+
+	// Inject session repo into auth middleware
+	middleware.SetSessionRepo(sessionRepo)
+
+	// --- Use cases that the choreographer depends on must be created first ---
+	eventService := event.NewService(eventRepo, calendarRepo)
 
 	// --- Choreographer (microservice choreography layer) ---
 	// The event bus decouples services: each service publishes domain events;
 	// the choreographer subscribes and triggers cross-service reactions.
 	bus := eventbus.New()
-	ch := choreographer.New(bus)
+	ch := choreographer.New(bus, eventService)
 
-	// --- Use cases ---
-	authService := auth.NewService(userRepo, googleClient)
+	// --- Remaining use cases ---
+	authService := auth.NewService(userRepo, sessionRepo, googleClient)
 	groupService := group.NewService(groupRepo, userRepo)
 	calendarService := calendar.NewService(eventRepo, groupRepo)
-	eventService := event.NewService(eventRepo, calendarRepo)
-	eventReqService := eventrequest.NewService(eventReqRepo, eventRepo, notifRepo, googleClient)
+	eventReqService := eventrequest.NewService(eventReqRepo, notifRepo, googleClient, eventRepo, calendarRepo)
 	notifService := notification.NewService(notifRepo)
 	syncService := synccal.NewService(eventRepo, calendarRepo, googleClient, nil, userRepo) // apple connector: nil until configured
 	textParserService := textparser.NewService(eventRepo, llmClient, calendarRepo)
@@ -76,7 +83,7 @@ func Initialize(cfg *config.Config) (*App, error) {
 	telegramService := telegram.NewService(eventRepo, textParserService, eventReqService)
 
 	// --- Interface: REST handlers ---
-	authHandler := rest.NewAuthHandler(authService, cfg.FrontendURL)
+	authHandler := rest.NewAuthHandler(authService, syncService, userRepo, cfg.FrontendURL)
 	groupHandler := rest.NewGroupHandler(groupService)
 	calendarHandler := rest.NewCalendarHandler(calendarService)
 	eventHandler := rest.NewEventHandler(eventService, ch)

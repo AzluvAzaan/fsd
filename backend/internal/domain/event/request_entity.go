@@ -10,6 +10,8 @@ type EventRequest struct {
 	EventID       string    `json:"eventId"`  // The event this request is for
 	Title         string    `json:"title"`
 	Type          string    `json:"type"` // e.g. "meeting", "personal"
+	Location      string    `json:"location"`
+	Note          string    `json:"note"`
 	ProposedStart time.Time `json:"proposedStart"`
 	ProposedEnd   time.Time `json:"proposedEnd"`
 	Status        string    `json:"status"` // pending, accepted, rejected

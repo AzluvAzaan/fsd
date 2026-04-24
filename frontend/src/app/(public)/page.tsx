@@ -1,141 +1,103 @@
-import Link from "next/link";
-import { CalendarDays, Link2, Users } from "lucide-react";
+import Image from "next/image";
+import { Sparkles } from "lucide-react";
 
 import { MarketingHeader } from "@/components/layout/marketing-header";
-import { SectionCard } from "@/components/shared/section-card";
+import { GooglePopupLoginButton } from "@/components/shared/google-popup-login-button";
 
-const features = [
-  {
-    icon: CalendarDays,
-    title: "Personal and group calendars",
-    body: "See your own schedule, shared timelines, and upcoming requests in one clean workspace.",
-  },
-  {
-    icon: Users,
-    title: "Collaborative availability",
-    body: "Compare overlap across members without turning scheduling into a chaotic group chat.",
-  },
-  {
-    icon: Link2,
-    title: "Integration-ready foundation",
-    body: "Built to connect with Google Calendar and future integrations once the backend catches up.",
-  },
-];
+type LandingPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
 
-const featureDelays = ["delay-700", "delay-[900ms]", "delay-1000"] as const;
+function readError(searchParams: Record<string, string | string[] | undefined> | undefined) {
+  const value = searchParams?.error;
+  return Array.isArray(value) ? value[0] : value;
+}
 
-export default function LandingPage() {
+export default async function LandingPage({ searchParams }: LandingPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const hasAuthError = readError(resolvedSearchParams) === "auth_failed";
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#f6f8fc]">
       <MarketingHeader />
-      <main className="mx-auto max-w-7xl px-6 py-20">
-        {/* Hero */}
-        <section className="relative overflow-hidden rounded-[2rem] border border-border/70 bg-card px-10 py-24 shadow-sm md:px-16">
-          {/* Ambient orb */}
+      <main className="relative mx-auto max-w-7xl px-6 py-10 sm:py-14">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-[36rem] rounded-[3rem] opacity-60 blur-3xl"
+          style={{
+            background:
+              "radial-gradient(circle at 20% 18%, rgba(91,77,255,0.16), transparent 28%), radial-gradient(circle at 78% 24%, rgba(255,176,64,0.2), transparent 24%), radial-gradient(circle at 55% 70%, rgba(110,231,255,0.12), transparent 28%)",
+          }}
+        />
+
+        <section className="relative overflow-hidden rounded-[2.4rem] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(239,237,255,0.72))] px-6 py-10 shadow-[0_32px_90px_-56px_rgba(23,24,28,0.45)] sm:px-8 md:px-12 md:py-14">
           <div
             aria-hidden="true"
-            className="animate-orb pointer-events-none absolute -right-32 -top-32 size-[600px] rounded-full opacity-25 blur-[100px] dark:opacity-15"
+            className="pointer-events-none absolute -left-20 bottom-0 size-72 rounded-full opacity-45 blur-3xl"
             style={{
-              background:
-                "radial-gradient(circle, color-mix(in srgb, var(--primary) 60%, #a78bfa 40%), transparent 70%)",
+              background: "radial-gradient(circle, rgba(91,77,255,0.18), transparent 72%)",
+            }}
+          />
+          <div
+            aria-hidden="true"
+            className="animate-orb pointer-events-none absolute -right-12 top-8 size-72 rounded-full opacity-45 blur-3xl"
+            style={{
+              background: "radial-gradient(circle, rgba(255,176,64,0.24), transparent 72%)",
             }}
           />
 
-          <div className="relative z-10 grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-            {/* Left: copy */}
-            <div>
-              <p className="animate-in fade-in slide-in-from-bottom-3 fill-mode-both duration-500 text-sm font-medium text-primary">
-                Calendar coordination without the chaos
-              </p>
-              <h1 className="animate-in fade-in slide-in-from-bottom-4 fill-mode-both duration-600 delay-150 mt-5 text-5xl font-semibold tracking-tight text-balance lg:text-6xl">
-                <span className="text-gradient-primary">Find shared free time faster</span>{" "}
-                with a calmer scheduling workflow.
+          <div className="relative z-10 grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.92fr)]">
+            <div className="max-w-2xl lg:pr-6">
+              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+                <Sparkles className="size-3.5 text-[#5b4dff]" />
+                Free slot detector
+              </div>
+
+              <h1 className="mt-6 max-w-3xl text-5xl font-semibold tracking-tight text-balance text-slate-900 md:text-6xl xl:text-[4.4rem]">
+                Find shared free time without the scheduling chaos.
               </h1>
-              <p className="animate-in fade-in slide-in-from-bottom-3 fill-mode-both duration-500 delay-300 mt-6 max-w-2xl text-lg text-muted-foreground">
-                FSD helps individuals and groups align schedules, review requests, and move from
-                &ldquo;when are you free?&rdquo; to an actual slot that works.
+
+              <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600">
+                SyncUp keeps planning simple. Sign in with Google, check overlap, and lock in the
+                best slot in seconds.
               </p>
-              <div className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both duration-500 delay-500 mt-9 flex flex-wrap gap-3">
-                <Link
-                  href="/login"
-                  className="shimmer-btn inline-flex rounded-full bg-primary px-7 py-3.5 font-medium text-primary-foreground shadow-lg shadow-primary/30 transition hover:opacity-95 hover:shadow-xl hover:shadow-primary/40"
-                >
-                  Get started
-                </Link>
+
+              {hasAuthError ? (
+                <div className="mt-8 rounded-[1.4rem] border border-destructive/25 bg-destructive/8 px-5 py-4 text-sm text-destructive shadow-sm">
+                  Sign-in failed. Please try again.
+                </div>
+              ) : null}
+
+              <div className="mt-8 max-w-sm">
+                <GooglePopupLoginButton label="Continue with Google" />
               </div>
             </div>
 
-            {/* Right: preview card */}
-            <div className="animate-in fade-in slide-in-from-right-8 fill-mode-both duration-700 delay-400">
-              <SectionCard className="animate-float bg-muted/40 p-8" style={{ animationDelay: "1.2s" }}>
-                <div className="rounded-3xl bg-background p-6 shadow-sm">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="rounded-2xl bg-primary/10 p-4">
-                      <p className="text-sm font-medium text-primary">Best overlap</p>
-                      <p className="mt-2 text-2xl font-semibold">Tue 2:00 PM</p>
-                      <p className="mt-1 text-sm text-muted-foreground">4 of 5 members free</p>
-                    </div>
-                    <div className="rounded-2xl bg-muted p-4">
-                      <p className="text-sm font-medium">Pending requests</p>
-                      <p className="mt-2 text-2xl font-semibold">2</p>
-                      <p className="mt-1 text-sm text-muted-foreground">Awaiting review</p>
-                    </div>
-                  </div>
-                  <div className="mt-4 rounded-2xl border border-border/70 p-4">
-                    <div className="flex items-center justify-between">
-                      <p className="font-medium">This week</p>
-                      <p className="text-xs text-muted-foreground">Mon–Fri</p>
-                    </div>
-                    <div className="mt-3 grid grid-cols-5 gap-2">
-                      {["M", "T", "W", "T", "F"].map((day, index) => (
-                        <div
-                          key={day + index}
-                          className={`rounded-2xl px-3 py-4 text-center text-sm ${
-                            index === 3
-                              ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {day}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-4 space-y-2 border-t border-border/50 pt-4">
-                      <div className="flex items-center gap-3">
-                        <div className="size-2 shrink-0 rounded-full bg-primary" />
-                        <p className="flex-1 text-xs text-muted-foreground">Team standup</p>
-                        <p className="text-xs font-medium">9:00 AM</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="size-2 shrink-0 rounded-full bg-violet-400" />
-                        <p className="flex-1 text-xs text-muted-foreground">Design review</p>
-                        <p className="text-xs font-medium">2:30 PM</p>
-                      </div>
-                    </div>
+            <div className="relative mx-auto w-full max-w-[32rem]">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-10 top-8 h-72 rounded-full blur-3xl"
+                style={{
+                  background:
+                    "radial-gradient(circle, rgba(91,77,255,0.2) 0%, rgba(255,176,64,0.2) 48%, transparent 74%)",
+                }}
+              />
+              <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_30px_70px_-45px_rgba(23,24,28,0.45)] sm:p-6">
+                <div className="rounded-[1.6rem] bg-[linear-gradient(160deg,rgba(239,237,255,0.95),rgba(255,255,255,0.9))] p-4 sm:p-6">
+                  <div className="mx-auto aspect-square w-full max-w-[25rem] rounded-[1.4rem] bg-[radial-gradient(circle,rgba(255,255,255,0.95),rgba(240,235,255,0.82),rgba(255,255,255,0.78))] p-4">
+                    <Image
+                      src="/rabbit.png"
+                      alt="SyncUp rabbit mascot"
+                      width={420}
+                      height={420}
+                      priority
+                      className="h-full w-full object-contain drop-shadow-[0_20px_35px_rgba(91,77,255,0.2)]"
+                    />
                   </div>
                 </div>
-              </SectionCard>
+              </div>
             </div>
           </div>
-        </section>
-
-        {/* Feature cards */}
-        <section className="mt-8 grid gap-5 md:grid-cols-3">
-          {features.map((feature, index) => {
-            const Icon = feature.icon;
-            return (
-              <SectionCard
-                key={feature.title}
-                className={`animate-in fade-in slide-in-from-bottom-4 fill-mode-both duration-500 ${featureDelays[index]}`}
-              >
-                <div className="inline-flex size-11 items-center justify-center rounded-2xl bg-primary/10">
-                  <Icon className="size-5 text-primary" />
-                </div>
-                <h2 className="mt-4 text-lg font-semibold">{feature.title}</h2>
-                <p className="mt-2 text-sm text-muted-foreground">{feature.body}</p>
-              </SectionCard>
-            );
-          })}
         </section>
       </main>
     </div>

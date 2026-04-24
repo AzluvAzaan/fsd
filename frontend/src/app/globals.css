@@ -250,10 +250,22 @@
     color: color-mix(in srgb, var(--muted-foreground) 86%, transparent);
   }
 
-  /* Month view: hide event rows — popup handles details on click */
-  .fsd-calendar .fc .fc-dayGridMonth-view .fc-daygrid-day-events,
+  /* Month view: hide single-day events — popup handles details on click */
+  /* Multi-day events (in fc-daygrid-event-harness-abs) are kept visible to show spanning */
+  .fsd-calendar .fc .fc-dayGridMonth-view .fc-daygrid-day-events .fc-daygrid-event-harness:not(.fc-daygrid-event-harness-abs),
   .fsd-calendar .fc .fc-dayGridMonth-view .fc-daygrid-more-link {
     display: none;
+  }
+
+  /* Style multi-day events that span across days */
+  .fsd-calendar .fc .fc-dayGridMonth-view .fc-daygrid-event-harness-abs .fc-event {
+    background: var(--primary);
+    opacity: 0.85;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: white;
   }
 
   /* Month view cells are clickable */
@@ -323,6 +335,27 @@
 
   .fsd-calendar .fc .fc-event-main {
     padding: 0;
+  }
+
+  .fsd-calendar .fc .fc-recommended-slot-pill {
+    display: flex;
+    height: 100%;
+    min-height: 100%;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    border: 1px dashed color-mix(in srgb, var(--primary) 65%, transparent);
+    background: color-mix(in srgb, var(--primary) 16%, transparent);
+    padding: 0.2rem;
+  }
+
+  .fsd-calendar .fc .fc-recommended-slot-pill.is-selected {
+    border-style: solid;
+    border-color: color-mix(in srgb, var(--primary) 90%, transparent);
+    background: color-mix(in srgb, var(--primary) 26%, transparent);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, white 35%, transparent) inset,
+      0 0 0 2px color-mix(in srgb, var(--primary) 45%, transparent);
   }
 
   .fsd-calendar .fc .fc-event-card {

@@ -156,4 +156,3 @@ func TestCreateManual_CreateEventFails(t *testing.T) {
 		t.Errorf("expected error")
 	}
 }
-

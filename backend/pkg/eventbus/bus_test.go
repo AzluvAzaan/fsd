@@ -3,17 +3,17 @@ package eventbus
 import "testing"
 
 func TestBus_PublishCallsSubscriber(t *testing.T) {
-    bus := New()
+	bus := New()
 
-    called := false
+	called := false
 
-    bus.Subscribe("test.event", func(e Event) {
-        called = true
-    })
+	bus.Subscribe("test.event", func(e Event) {
+		called = true
+	})
 
-    bus.Publish(Event{Type: "test.event"})
+	bus.Publish(Event{Type: "test.event"})
 
-    if !called {
-        t.Errorf("expected handler to be called")
-    }
+	if !called {
+		t.Errorf("expected handler to be called")
+	}
 }

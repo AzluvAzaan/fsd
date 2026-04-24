@@ -1088,15 +1088,6 @@ export function CalendarWorkspace({
                   }
 
                   if (arg.view.type === "dayGridMonth") {
-                    // For multi-day events, let FullCalendar handle the default rendering
-                    // so they span across days properly
-                    if (arg.event.allDay && arg.event.start && arg.event.end) {
-                      const days = (arg.event.end.getTime() - arg.event.start.getTime()) / (24 * 60 * 60 * 1000);
-                      if (days > 1) {
-                        return null; // Use FullCalendar's default multi-day rendering
-                      }
-                    }
-
                     const pillColor = (arg.event.extendedProps.accentColor as string | undefined) ?? "#7c3aed";
                     const pillPending = Boolean(arg.event.extendedProps.isPending);
                     return (

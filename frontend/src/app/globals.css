@@ -257,17 +257,6 @@
     display: none;
   }
 
-  /* Style multi-day events that span across days */
-  .fsd-calendar .fc .fc-dayGridMonth-view .fc-daygrid-event-harness-abs .fc-event {
-    background: var(--primary);
-    opacity: 0.85;
-    border-radius: 4px;
-    padding: 2px 6px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: white;
-  }
-
   /* Month view cells are clickable */
   .fsd-calendar .fc .fc-dayGridMonth-view .fc-daygrid-day {
     cursor: pointer;

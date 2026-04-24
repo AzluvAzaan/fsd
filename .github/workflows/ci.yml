@@ -43,6 +43,21 @@ jobs:
             exit 1
           fi
 
+      - name: Test
+        run: go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Generate HTML coverage report
+        run: go tool cover -html=coverage.out -o coverage.html
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: |
+            backend/coverage.out
+            backend/coverage.html
+          retention-days: 30
+
       - name: Build
         run: go build ./...
 

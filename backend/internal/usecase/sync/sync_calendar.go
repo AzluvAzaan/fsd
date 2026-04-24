@@ -89,6 +89,7 @@ func (s *Service) syncProvider(
 	}
 
 	// 4. Upsert each event into the local store.
+	fetchedIDs := make(map[string]struct{}, len(externalEvents))
 	for _, e := range externalEvents {
 		e.CalendarID = cal.ID
 		e.Source = source
@@ -97,6 +98,24 @@ func (s *Service) syncProvider(
 		}
 		if err := s.events.Upsert(ctx, e); err != nil {
 			return 0, fmt.Errorf("upsert %s event %s: %w", source, e.ID, err)
+		}
+		fetchedIDs[e.ID] = struct{}{}
+	}
+
+	// 5. Reconcile: delete local events that no longer exist in the external provider.
+	// This handles events deleted in Google Calendar between syncs.
+	existing, err := s.events.ListByUser(ctx, userID, from, to)
+	if err != nil {
+		return 0, fmt.Errorf("list existing %s events for user %s: %w", source, userID, err)
+	}
+	for _, e := range existing {
+		if e.Source != source {
+			continue
+		}
+		if _, found := fetchedIDs[e.ID]; !found {
+			if err := s.events.Delete(ctx, e.ID); err != nil {
+				return 0, fmt.Errorf("delete stale %s event %s: %w", source, e.ID, err)
+			}
 		}
 	}
 

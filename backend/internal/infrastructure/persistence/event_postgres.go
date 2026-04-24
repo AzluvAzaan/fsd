@@ -101,8 +101,8 @@ func (r *EventPostgresRepo) ListByUser(ctx context.Context, userID string, from,
 		 FROM events e
 		 JOIN calendars c ON e.calendar_id = c.id
 		 WHERE c.user_id = $1
-		   AND e.start_time >= $2
-		   AND e.end_time   <= $3
+		   AND e.start_time < $3
+		   AND e.end_time   > $2
 		   AND e.status != 'cancelled'
 		 ORDER BY e.start_time`,
 		userID, from, to,
@@ -141,8 +141,8 @@ func (r *EventPostgresRepo) ListByGroup(ctx context.Context, groupID string, fro
 		 FROM events e
 		 JOIN event_requests er ON er.event_id = e.id
 		 WHERE er.group_id = $1
-		   AND e.start_time >= $2
-		   AND e.end_time   <= $3
+		   AND e.start_time < $3
+		   AND e.end_time   > $2
 		 ORDER BY e.start_time`,
 		groupID, from, to,
 	)
@@ -175,8 +175,8 @@ func (r *EventPostgresRepo) BusySlots(ctx context.Context, userIDs []string, fro
 		 FROM events e
 		 JOIN calendars c ON e.calendar_id = c.id
 		 WHERE c.user_id IN (%s)
-		   AND e.start_time >= $%d
-		   AND e.end_time   <= $%d
+		   AND e.start_time < $%d
+		   AND e.end_time   > $%d
 		   AND e.status = 'confirmed'
 		 ORDER BY c.user_id, e.start_time`,
 		strings.Join(placeholders, ", "),

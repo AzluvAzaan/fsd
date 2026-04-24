@@ -13,6 +13,8 @@ A group calendar coordination system. Users authenticate via Google, sync their 
 | Integrations | Google Calendar API, Gmail API, LLM (OpenAI/Gemini), Telegram Bot |
 
 ---
+## Architecture Diagram
+![Architecture Diagram of FSD](images/arch_diagram.png)
 
 ## Quick Start
 

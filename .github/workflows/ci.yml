@@ -43,6 +43,16 @@ jobs:
             exit 1
           fi
 
+      - name: Test
+        run: go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./backend/coverage.out
+          flags: backend
+        continue-on-error: true
+
       - name: Build
         run: go build ./...
 

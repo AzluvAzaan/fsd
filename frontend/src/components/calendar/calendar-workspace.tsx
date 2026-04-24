@@ -226,14 +226,12 @@ function toEventInput(event: CalendarEvent): EventInput {
     ? undefined
     : personalCategoryMeta[category].color;
 
-  // Detect single-day all-day events only (not multi-day)
-  // Multi-day events work better as timed events for spanning display
   const start = new Date(event.startAt);
   const end = new Date(event.endAt);
   const durationMs = end.getTime() - start.getTime();
-  const isExactlyOneDay = durationMs === 24 * 60 * 60 * 1000;
+  const DAY_MS = 24 * 60 * 60 * 1000;
   const startsAtMidnight = start.getUTCHours() === 0 && start.getUTCMinutes() === 0;
-  const isAllDay = startsAtMidnight && isExactlyOneDay;
+  const isAllDay = startsAtMidnight && durationMs >= DAY_MS && durationMs % DAY_MS === 0;
 
   return {
     id: event.id,

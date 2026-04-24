@@ -1,140 +1,225 @@
-# FSD Frontend
+# FSD — Free Slot Detector
 
-Low-friction web frontend starter for FSD.
+A group calendar coordination system. Users authenticate via Google, sync their calendars, form groups, and find shared free time.
 
 ## Stack
 
-- Next.js
-- TypeScript
-- Tailwind CSS
-- shadcn/ui
-- TanStack Query
-- React Hook Form
-- Zod
-- Lucide React
-- next-themes
+| Layer | Tech |
+|---|---|
+| Backend | Go 1.25, `pgx/v5` (PostgreSQL), `golang.org/x/oauth2` |
+| Frontend | Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui, TanStack Query |
+| Database | PostgreSQL (hosted; SSL required) |
+| Auth | Google OAuth2 |
+| Integrations | Google Calendar API, Gmail API, LLM (OpenAI/Gemini), Telegram Bot |
 
-## Goals of this setup
+---
 
-- Keep the initial setup simple and easy to extend
-- Let you test the existing Go backend quickly
-- Give the project a clean structure for future pages and features
-- Avoid over-engineering early
+## Quick Start
 
-## Project structure
-
-```text
-src/
-  app/
-    dev/
-      backend-test/     # simple page for testing current backend endpoints
-    layout.tsx          # global app layout + providers
-    page.tsx            # starter landing page
-  components/
-    backend/            # feature components for backend testing/dev tools
-    layout/             # app shell / navigation wrappers
-    ui/                 # shadcn/ui components
-  lib/
-    api.ts              # backend API helpers
-    env.ts              # frontend env access
-    query-client.ts     # TanStack Query client factory
-    utils.ts            # shared utility helpers
-```
-
-## Local development
-
-### 1) Start the backend
-
-From the repo root:
+### 1. Database
 
 ```bash
 cd backend
-go run ./cmd/app
+make db-migrate   # create all tables
+make db-seed      # insert sample data (optional)
 ```
 
-Or with Make:
+Reset from scratch:
+
+```bash
+make db-reset     # drop → migrate → seed
+```
+
+### 2. Backend
 
 ```bash
 cd backend
-make run
+cp .env.example .env   # fill in values (see env section below)
+make run               # → http://localhost:8080
 ```
 
-The current frontend assumes the backend runs on:
-
-```text
-http://localhost:8080
-```
-
-### 2) Configure frontend env
-
-Copy the example env file:
+### 3. Frontend
 
 ```bash
 cd frontend
 cp .env.example .env.local
+npm install
+npm run dev            # → http://localhost:3000
 ```
 
-Default value:
+---
+
+## Environment Variables
+
+### Backend (`backend/.env`)
+
+```env
+SERVER_PORT=8080
+
+# PostgreSQL — set DATABASE_URL or individual fields
+DATABASE_URL=postgres://user:pass@host:5432/dbname?sslmode=require
+# DB_HOST=...
+# DB_PORT=5432
+# DB_USER=...
+# DB_PASSWORD=...
+# DB_NAME=...
+
+# Google OAuth2 + Calendar/Gmail APIs
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GOOGLE_REDIRECT_URL=http://localhost:8080/auth/google/callback
+
+# LLM (text → event parsing)
+LLM_API_KEY=...
+LLM_BASE_URL=https://api.openai.com/v1
+LLM_MODEL=gpt-4
+
+# Telegram Bot (UC11)
+TELEGRAM_BOT_TOKEN=...
+```
+
+### Frontend (`frontend/.env.local`)
 
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 ```
 
-### 3) Start the frontend
+---
+
+## Telegram Bot (UC11)
+
+The bot lets users manage their calendar via natural-language Telegram messages.
+
+**Supported commands:**
+
+| Input | Action |
+|---|---|
+| `"dinner with mum at 7pm tomorrow"` | Parses text via LLM and creates a calendar event |
+| `"any pending requests"` | Lists pending event requests |
+| Inline accept/decline button tap | Responds to an event request |
+
+**Webhook endpoint:**
+
+```
+POST /telegram/webhook
+```
+
+**Setup:**
+
+1. Create a bot via [@BotFather](https://t.me/botfather) and copy the token into `TELEGRAM_BOT_TOKEN`.
+2. Register the webhook with Telegram (replace `<TOKEN>` and `<YOUR_PUBLIC_URL>`):
 
 ```bash
-cd frontend
-npm install
-npm run dev
+curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=<YOUR_PUBLIC_URL>/telegram/webhook"
 ```
 
-Open:
+3. For local development, use [ngrok](https://ngrok.com/) or similar to expose `localhost:8080`.
 
-```text
-http://localhost:3000
-```
+**How it works:**
 
-## Backend testing page
+Telegram sends a POST to `/telegram/webhook` for every update. The handler decodes the update, identifies whether it's a text message or a callback (button tap), and delegates to the `telegram.Service` use case. Natural-language messages are forwarded to the LLM text parser (UC12) which extracts event details and creates the event.
 
-A simple test page is available at:
+---
 
-```text
-/dev/backend-test
-```
+## API Routes
 
-It currently helps you test the most complete backend slice in the repo:
+**Auth (UC1)**
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/auth/google/login` | Redirects to Google OAuth |
+| GET | `/auth/google/callback` | OAuth callback, sets session cookie |
+| POST | `/auth/logout` | Clears session |
+| GET | `/auth/me` | Returns current user |
 
-- `PUT /users`
-- `GET /users?email=...`
-- `GET /users/{id}` (used for a quick connectivity signal)
+**Users**
+| Method | Path |
+|---|---|
+| GET | `/users/{userId}` |
+| GET | `/users?email=` |
+| PUT | `/users` |
+| DELETE | `/users/{userId}` |
 
-This is meant to confirm that:
+**Groups (UC2)**
+| Method | Path |
+|---|---|
+| POST | `/groups` |
+| POST | `/groups/join` |
+| GET | `/groups` |
+| GET | `/groups/{groupId}` |
+| GET | `/groups/{groupId}/members` |
+| DELETE | `/groups/{groupId}` |
 
-- your frontend env is correct
-- CORS is working
-- the frontend can create/read data from the Go backend
+**Calendar (UC3–5)**
+| Method | Path |
+|---|---|
+| GET | `/calendar` |
+| GET | `/groups/{groupId}/calendar` |
+| GET | `/groups/{groupId}/availability` |
 
-## Notes for future development
+**Events (UC6)**
+| Method | Path |
+|---|---|
+| POST | `/events` |
+| PUT | `/events/{eventId}` |
+| DELETE | `/events/{eventId}` |
 
-### When to add FullCalendar
+**Event Requests (UC7–8)**
+| Method | Path |
+|---|---|
+| POST | `/event-requests` |
+| POST | `/event-requests/{requestId}/respond` |
+| DELETE | `/event-requests/{requestId}` |
+| GET | `/event-requests/pending` |
+| GET | `/event-requests/received` |
+| GET | `/event-requests/sent` |
+| GET | `/event-requests/{requestId}` |
 
-Do **not** add it immediately unless your wireframes already require a richer scheduling UI.
+**Notifications (UC9)**
+| Method | Path |
+|---|---|
+| GET | `/notifications` |
+| POST | `/notifications/{notificationId}/read` |
 
-Add it when you need things like:
+**Sync (UC10)**
+| Method | Path |
+|---|---|
+| POST | `/sync/google` |
+| POST | `/sync/apple` |
 
-- week/day calendar grids
-- drag-and-drop events
-- advanced event rendering
-- denser scheduling interactions
+**Text Parser / Telegram (UC11–12)**
+| Method | Path |
+|---|---|
+| POST | `/events/parse-text` |
+| POST | `/telegram/webhook` |
 
-Until then, basic cards/lists/custom views are easier to maintain.
+**Docs**
+| Method | Path |
+|---|---|
+| GET | `/docs` | Swagger UI |
+| GET | `/docs/openapi.json` | OpenAPI spec |
 
+---
 
-## Commands
+## Frontend Commands
 
 ```bash
-npm run dev    # run dev server
+npm run dev    # dev server
 npm run build  # production build
-npm run start  # run production server
-npm run lint   # lint the project
+npm run start  # production server
+npm run lint   # ESLint
 ```
+
+## Backend Commands
+
+```bash
+make run          # go run ./cmd/app
+make db-migrate   # run migrations
+make db-seed      # seed sample data
+make db-reset     # drop + migrate + seed
+```
+
+---
+
+## Dev Tools
+
+A backend test page is available at `/dev/backend-test` in the frontend. Useful for verifying CORS, auth headers, and basic endpoint connectivity without needing a REST client.

@@ -167,8 +167,8 @@ func (r *EventPostgresRepo) BusySlots(ctx context.Context, userIDs []string, fro
 		placeholders[i] = fmt.Sprintf("$%d", i+1)
 		args[i] = id
 	}
-	args[len(userIDs)] = from
-	args[len(userIDs)+1] = to
+	args[len(userIDs)] = to
+	args[len(userIDs)+1] = from
 
 	query := fmt.Sprintf(
 		`SELECT c.user_id, e.start_time, e.end_time

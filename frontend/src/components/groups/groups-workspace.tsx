@@ -41,7 +41,6 @@ export function GroupsWorkspace() {
 
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [groupName, setGroupName] = useState("");
-  const [groupDescription, setGroupDescription] = useState("");
   const [inviteCode, setInviteCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -75,7 +74,6 @@ export function GroupsWorkspace() {
       const uiGroup = apiGroupToUIGroup(created, items.length, 1, created.createdById === currentUserId);
       setItems((prev) => [uiGroup, ...prev]);
       setGroupName("");
-      setGroupDescription("");
       setModalMode(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create group");

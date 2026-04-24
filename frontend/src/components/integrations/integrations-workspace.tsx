@@ -7,8 +7,6 @@ import { PageHeader } from "@/components/shared/page-header";
 import { SectionCard } from "@/components/shared/section-card";
 import { cn } from "@/lib/utils";
 
-type SyncState = "idle" | "syncing" | "done" | "error";
-
 type Integration = {
   id: string;
   name: string;

@@ -145,7 +145,6 @@ export function AvailabilityPlanner({ groupName }: AvailabilityPlannerProps) {
               setSelectedSlotId(slotId);
               setRequestDrafted(false);
             }}
-            actionLabel="Inspect slot"
           />
         </div>
 

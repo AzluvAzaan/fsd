@@ -2,24 +2,11 @@
 
 import { useMemo, useState } from "react";
 
-import { SlotList } from "@/components/availability/slot-list";
-import { PageHeader } from "@/components/shared/page-header";
-import { SectionCard } from "@/components/shared/section-card";
 import { availabilitySlots } from "@/lib/constants/mock-data";
-import { cn } from "@/lib/utils";
 
-type AvailabilityPlannerProps = {
-  groupName: string;
-};
-
-const durations = ["30 min", "60 min", "90 min"] as const;
-const ranges = ["This week", "Next 7 days", "Next 2 weeks"] as const;
-
-export function AvailabilityPlanner({ groupName }: AvailabilityPlannerProps) {
-  const [selectedRange, setSelectedRange] = useState<(typeof ranges)[number]>("This week");
-  const [selectedDuration, setSelectedDuration] = useState<(typeof durations)[number]>("60 min");
-  const [minimumParticipants, setMinimumParticipants] = useState(3);
-  const [selectedSlotId, setSelectedSlotId] = useState(availabilitySlots[0]?.id ?? "");
+export function AvailabilityPlanner() {
+  const minimumParticipants = 3;
+  const selectedSlotId = availabilitySlots[0]?.id ?? "";
   const [requestDrafted, setRequestDrafted] = useState(false); // used as modal open
 
   const filteredSlots = useMemo(

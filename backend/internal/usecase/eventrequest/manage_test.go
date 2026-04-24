@@ -170,8 +170,16 @@ func (m *MockNotificationRepo) MarkRead(ctx context.Context, id string) error {
 func TestSendRequest_CreatesNotifications(t *testing.T) {
 	mockReq := &MockRequestRepo{}
 	mockNotif := &MockNotificationRepo{}
+	mockCal := &MockCalendarRepo{
+		Calendar: &domaincal.Calendar{
+			ID:     "cal1",
+			UserID: "user1",
+			Name:   "Personal",
+			Source: "manual",
+		},
+	}
 
-	s := NewService(mockReq, mockNotif, nil, &MockEventRepo{}, &MockCalendarRepo{})
+	s := NewService(mockReq, mockNotif, nil, &MockEventRepo{}, mockCal)
 
 	now := time.Now()
 

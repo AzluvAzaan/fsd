@@ -8,7 +8,7 @@ import (
 
 func TestInitialize_Success(t *testing.T) {
 	cfg := &config.Config{
-		DatabaseURL:        "postgres://invalid:5432/test", 
+		DatabaseURL:        "postgres://invalid:5432/test",
 		GoogleClientID:     "test",
 		GoogleClientSecret: "test",
 		GoogleRedirectURL:  "http://localhost",

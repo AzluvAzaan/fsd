@@ -17,6 +17,7 @@ export function AppTopbar({ onToggleSidebar }: AppTopbarProps) {
   const [user, setUser] = useState<StoredUser | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUser(getStoredUser());
   }, []);
 

@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strings"
 	"testing"
 )
 
@@ -37,6 +39,10 @@ func TestRequestLogger(t *testing.T) {
 }
 
 func TestRecoverer(t *testing.T) {
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+	defer log.SetOutput(os.Stderr)
+
 	panicHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		panic("something broke")
 	})
@@ -52,6 +58,10 @@ func TestRecoverer(t *testing.T) {
 
 	if resp.StatusCode != http.StatusInternalServerError {
 		t.Errorf("expected 500, got %d", resp.StatusCode)
+	}
+
+	if !strings.Contains(buf.String(), "[PANIC]") {
+		t.Errorf("expected panic to be logged")
 	}
 }
 

@@ -49,6 +49,12 @@ func (m *MockEventRepo) BusySlots(ctx context.Context, userIDs []string, from, t
 func (m *MockEventRepo) Upsert(ctx context.Context, e *event.Event) error {
 	return nil
 }
+func (m *MockEventRepo) DeleteByRequestID(ctx context.Context, requestID string) error {
+	return nil
+}
+func (m *MockEventRepo) UpdateStatusByRequestID(ctx context.Context, requestID string, status string) error {
+	return nil
+}
 
 type MockCalendarRepo struct {
 	Calendar *domaincal.Calendar

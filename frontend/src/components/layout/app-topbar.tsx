@@ -14,7 +14,12 @@ type AppTopbarProps = {
 
 export function AppTopbar({ onToggleSidebar }: AppTopbarProps) {
   const router = useRouter();
-  const [user] = useState<StoredUser | null>(() => getStoredUser());
+  const [user, setUser] = useState<StoredUser | null>(null);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUser(getStoredUser());
+  }, []);
 
   function handleLogout() {
     clearStoredUser();
